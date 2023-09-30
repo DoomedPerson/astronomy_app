@@ -1,0 +1,676 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'dart:async';
+import 'dart:math';
+import 'jo7implementation.dart';
+import 'astronomical_calculations.dart';
+import 'package:flutter/gestures.dart';
+
+void main() {
+  List<List<List<double>>> planetPositions = calculatePlanetPositions();
+  runApp(MyApp(planetPositions));
+}
+
+class MyApp extends StatelessWidget {
+
+  List<List<List<double>>> planetPositions;
+
+  MyApp(this.planetPositions);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        colorScheme:
+            ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 7, 7, 20)),
+        scaffoldBackgroundColor: Color.fromARGB(255, 5, 5, 15),
+        useMaterial3: true,
+      ),
+      home: MyHomePage(
+        title: 'My Solar System',
+        planetPositions: planetPositions, // Pass planetPositions
+      ),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  final List<List<List<double>>> planetPositions;
+
+  const MyHomePage({
+    Key? key,
+    required this.title,
+    required this.planetPositions, // Add this line to accept planetPositions
+  }) : super(key: key);
+
+  final String title;
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+List<List<List<double>>> calculatePlanetPositions() {
+  final yearLengths = {88/60, 225/60, 365/60, 687/60, 4333/60, 10756/60, 30687/60, 60190/60};
+  List<List<List<double>>> positions = [];
+
+  DateTime time = DateTime.now().toUtc();
+  double currentJD = gregorianToJD(
+      time.year,
+      time.month,
+      (time.day +
+          (time.hour / 24) +
+          (time.minute / 1440) +
+          (time.second / 86400)));
+
+  double t = jd2et(currentJD);
+
+  for (int i = 0; i < 8; i++) {
+    int length = yearLengths.elementAt(i).toInt();
+    List<List<double>> planetPositionsForYear = [];
+
+    for (int j = 0; j < 61; j++) {
+      double t = jd2et(currentJD + yearLengths.elementAt(i)*j);
+      List<double> temp = [0, 0, 0];
+
+      switch (i) {
+        case 0:
+          Vsop87aMicro.getMercury(t, temp);
+          break;
+        case 1:
+          Vsop87aMicro.getVenus(t, temp);
+          break;
+        case 2:
+          Vsop87aMicro.getEarth(t, temp);
+          break;
+        case 3:
+          Vsop87aMicro.getMars(t, temp);
+          break;
+        case 4:
+          Vsop87aMicro.getJupiter(t, temp);
+          break;
+        case 5:
+          Vsop87aMicro.getSaturn(t, temp);
+          break;
+        case 6:
+          Vsop87aMicro.getUranus(t, temp);
+          break;
+        case 7:
+          Vsop87aMicro.getNeptune(t, temp);
+          break;
+        default:
+          break;
+      }
+
+      planetPositionsForYear.add([temp[0], temp[1]]);
+    }
+
+    positions.add(planetPositionsForYear);
+  }
+
+  return positions;
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  double _currentJD = 0;
+  Timer? _timer;
+  String _currentGregorian =
+      DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+
+  // x, y, z
+  List<double> mercuryTemp = [0, 0, 0];
+  List<double> venusTemp = [0, 0, 0];
+  List<double> earthTemp = [0, 0, 0];
+  List<double> marsTemp = [0, 0, 0];
+
+  List<double> jupiterTemp = [0, 0, 0];
+  List<double> saturnTemp = [0, 0, 0];
+  List<double> uranusTemp = [0, 0, 0];
+  List<double> neptuneTemp = [0, 0, 0];
+
+  // longitude, latitude, radius, right-ascension, declination
+  List<double> mercuryCoord = [0, 0, 0, 0, 0];
+  List<double> venusCoord = [0, 0, 0, 0, 0];
+  List<double> earthCoord = [0, 0, 0, 0, 0];
+  List<double> marsCoord = [0, 0, 0, 0, 0];
+
+  List<double> jupiterCoord = [0, 0, 0, 0, 0];
+  List<double> saturnCoord = [0, 0, 0, 0, 0];
+  List<double> uranusCoord = [0, 0, 0, 0, 0];
+  List<double> neptuneCoord = [0, 0, 0, 0, 0];
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    // Start the timer to update JD every second
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      _updateJD();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Cancel the timer when the widget is disposed
+    super.dispose();
+  }
+
+  void _updateJD() {
+    setState(() {
+      DateTime time = DateTime.now().toUtc();
+      _currentJD = gregorianToJD(
+          time.year,
+          time.month,
+          (time.day +
+              (time.hour / 24) +
+              (time.minute / 1440) +
+              (time.second / 86400)));
+      _currentGregorian =
+      _currentGregorian =
+          DateFormat('yyyy-MM-dd HH:mm:ss').format(time.toLocal());
+
+      double t = jd2et(_currentJD);
+
+      Vsop87aMicro.getMercury(t, mercuryTemp);
+      Vsop87aMicro.getVenus(t, venusTemp);
+      Vsop87aMicro.getEarth(t, earthTemp);
+      Vsop87aMicro.getMars(t, marsTemp);
+
+      Vsop87aMicro.getJupiter(t, jupiterTemp);
+      Vsop87aMicro.getSaturn(t, saturnTemp);
+      Vsop87aMicro.getUranus(t, uranusTemp);
+      Vsop87aMicro.getNeptune(t, neptuneTemp);
+
+
+      mercuryCoord = cartesianToEclipticCoordinates(
+          mercuryTemp[0], mercuryTemp[1], mercuryTemp[2]);
+      venusCoord = cartesianToEclipticCoordinates(
+          venusTemp[0], venusTemp[1], venusTemp[2]);
+      earthCoord = cartesianToEclipticCoordinates(
+          earthTemp[0], earthTemp[1], earthTemp[2]);
+      marsCoord =
+          cartesianToEclipticCoordinates(marsTemp[0], marsTemp[1], marsTemp[2]);
+
+
+      jupiterCoord = cartesianToEclipticCoordinates(
+          jupiterTemp[0], jupiterTemp[1], jupiterTemp[2]);
+      saturnCoord = cartesianToEclipticCoordinates(
+          saturnTemp[0], saturnTemp[1], saturnTemp[2]);
+      uranusCoord = cartesianToEclipticCoordinates(
+          uranusTemp[0], uranusTemp[1], uranusTemp[2]);
+      neptuneCoord = cartesianToEclipticCoordinates(
+          neptuneCoord[0], neptuneCoord[1], neptuneCoord[2]);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color.fromRGBO(4, 5, 5, 1),
+        title: Text(
+          widget.title,
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+      body: GestureDetector(
+        child: Stack(
+          children: [
+            // Solar System UI
+            SolarSystem(
+              earthCoordinates: earthTemp,
+              mercuryCoordinates: mercuryTemp,
+              venusCoordinates: venusTemp,
+              marsCoordinates: marsTemp,
+              jupiterCoordinates: jupiterTemp,
+              saturnCoordinates: saturnTemp,
+              uranusCoordinates: uranusTemp,
+              neptuneCoordinates: neptuneTemp,
+              planetPositions: widget.planetPositions,
+            ),
+
+            // Text widgets
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  Text(
+                    _currentGregorian,
+                    style: TextStyle(
+                      color: const Color.fromARGB(255, 105, 105, 105),
+                    ),
+                  ),
+                  Text(
+                    '$_currentJD',
+                    style: TextStyle(
+                      color: const Color.fromARGB(255, 105, 105, 105),
+                    ),
+                  ),
+                  Text(
+                    '$marsTemp',
+                    style: TextStyle(
+                      color: const Color.fromARGB(255, 105, 105, 105),
+                    ),
+                  ),
+                  Text(
+                    'Current Coordinates $marsCoord',
+                    style: TextStyle(
+                      color: const Color.fromARGB(255, 105, 105, 105),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SolarSystem extends StatefulWidget {
+  final List<double> earthCoordinates;
+  final List<double> mercuryCoordinates;
+  final List<double> venusCoordinates;
+  final List<double> marsCoordinates;
+  final List<double> jupiterCoordinates;
+  final List<double> saturnCoordinates;
+  final List<double> uranusCoordinates;
+  final List<double> neptuneCoordinates;
+
+  final List<List<List<double>>> planetPositions;
+
+  SolarSystem({
+    required this.earthCoordinates,
+    required this.mercuryCoordinates,
+    required this.venusCoordinates,
+    required this.marsCoordinates,
+    required this.jupiterCoordinates,
+    required this.saturnCoordinates,
+    required this.uranusCoordinates,
+    required this.neptuneCoordinates,
+    required this.planetPositions,
+  });
+
+  @override
+  _SolarSystemState createState() => _SolarSystemState();
+}
+
+class PlanetOrbitsPainter extends CustomPainter {
+  final double sunPosX;
+  final double sunPosY;
+  final List<List<List<double>>> planetPositions;  // Added parameter
+
+  PlanetOrbitsPainter(this.sunPosX, this.sunPosY, this.planetPositions);
+
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Translate the canvas to position the Sun at the center
+    canvas.translate(sunPosX, sunPosY);
+    
+    
+
+
+
+
+
+
+
+    // Orbits data: [semi-major axis (AU), eccentricity]
+    Paint orbitPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke;
+    // Draw orbits for each planet
+    for (int i = 0; i < 8; i++) {
+        Path orbitPath = Path();
+        orbitPath.moveTo(planetPositions[i][0][0]*30, -planetPositions[i][0][1]*30);
+        for (var j = 1; j < planetPositions[i].length; j++) {
+          orbitPath.lineTo(planetPositions[i][j][0]*30, -planetPositions[i][j][1]*30);
+        }
+        canvas.drawPath(orbitPath, orbitPaint);
+
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return false;
+  }
+}
+
+class _PlanetInfo extends StatelessWidget {
+  final String planetName;
+
+  const _PlanetInfo({required this.planetName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: 20.0,
+      top: 20.0,
+      child: Container(
+        padding: EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'Selected Planet: $planetName\nAdd your specified text here.',
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+
+
+class _SolarSystemState extends State<SolarSystem> {
+  double scale = 1.0; // Initial scale value, can be adjusted
+
+  String selectedPlanet = '';
+
+  @override
+  Widget build(BuildContext context) {
+
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Calculate the center of the screen
+    final centerX = screenWidth / 2;
+    final centerY = screenHeight / 2;
+
+    // Update the sun position based on scale
+    double sunPosX = centerX*2;
+    double sunPosY = centerY*2;
+
+    double astroScale = 30.0;
+
+    double mercuryLeft = sunPosX + (widget.mercuryCoordinates[0] * astroScale);
+    double mercuryTop = sunPosY + (-widget.mercuryCoordinates[1] * astroScale);
+
+    double venusLeft = sunPosX + (widget.venusCoordinates[0] * astroScale);
+    double venusTop = sunPosY + (-widget.venusCoordinates[1] * astroScale);
+
+    double earthLeft = sunPosX + (widget.earthCoordinates[0] * astroScale);
+    double earthTop = sunPosY + (-widget.earthCoordinates[1] * astroScale);
+
+    double marsLeft = sunPosX + (widget.marsCoordinates[0] * astroScale);
+    double marsTop = sunPosY + (-widget.marsCoordinates[1] * astroScale);
+
+    double jupiterLeft = sunPosX + (widget.jupiterCoordinates[0] * astroScale);
+    double jupiterTop = sunPosY + (-widget.jupiterCoordinates[1] * astroScale);
+
+    double saturnLeft = sunPosX + (widget.saturnCoordinates[0] * astroScale);
+    double saturnTop = sunPosY + (-widget.saturnCoordinates[1] * astroScale);
+
+    double uranusLeft = sunPosX + (widget.uranusCoordinates[0] * astroScale);
+    double uranusTop = sunPosY + (-widget.uranusCoordinates[1] * astroScale);
+
+    double neptuneLeft = sunPosX + (widget.neptuneCoordinates[0] * astroScale);
+    double neptuneTop = sunPosY + (-widget.neptuneCoordinates[1] * astroScale);
+
+    return Scaffold(
+      body: GestureDetector(
+        onTap: () {
+          // Clear the selected planet and displayed text
+          setState(() {
+            selectedPlanet = '';
+          });
+        },
+      child: InteractiveViewer(
+          boundaryMargin: EdgeInsets.only(left: 1250.0, top: 1750.0, right: 500.0, bottom: 250.0),
+          minScale: 0.1,
+          maxScale: 7.5,
+
+          constrained: false,
+          child: SizedBox(
+            width: screenWidth*4,
+            height: screenHeight*4,
+            child: Stack(
+              children: [
+
+                CustomPaint(
+                  painter: PlanetOrbitsPainter(sunPosX, sunPosY, widget.planetPositions),
+                  size: Size(screenWidth * 4, screenHeight * 4),
+                ),
+
+                // Sun
+                Positioned(
+                  left: sunPosX - (6.75),
+                  top: sunPosY - (6.75),
+                  child: GestureDetector(
+                    onTap: () {
+                      // Set the selected planet and associated text
+                      setState(() {
+                        selectedPlanet = 'Sun';
+                      });
+                    },
+                    child: Container(
+                      width: 13.5,
+                      height: 13.5,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.yellow,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Mercury
+                Positioned(
+                  left: mercuryLeft-1,
+                  top: mercuryTop-1,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Set the selected planet and associated text
+                      setState(() {
+                        selectedPlanet = 'Mercury';
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: 2.0,
+                      height: 2.0,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Venus
+                Positioned(
+                  left: venusLeft-2.48,
+                  top: venusTop-2.48,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Set the selected planet and associated text
+                      setState(() {
+                        selectedPlanet = 'Venus';
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: 4.96,
+                      height: 4.96,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.fromARGB(255, 155, 83, 35),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Earth
+                Positioned(
+                  left: earthLeft-2.61,
+                  top: earthTop-2.61,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Set the selected planet and associated text
+                      setState(() {
+                        selectedPlanet = 'Earth';
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: 5.22,
+                      height: 5.22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Moon
+                /*Positioned(
+                  left: 220.0,
+                  top: 150.0,
+                  child: Container(
+                    alignment: Alignment.center,
+                    width: 4.0,
+                    height: 4.0,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),*/
+
+                // Mars
+                Positioned(
+                  left: marsLeft-1.39,
+                  top: marsTop-1.39,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Set the selected planet and associated text
+                      setState(() {
+                        selectedPlanet = 'Mars';
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: 2.78,
+                      height: 2.78,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.fromARGB(255, 51, 36, 4),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Jupiter
+                Positioned(
+                  left: jupiterLeft-28.64,
+                  top: jupiterTop-28.64,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Set the selected planet and associated text
+                      setState(() {
+                        selectedPlanet = 'Jupiter';
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: 57.28,
+                      height: 57.28,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.fromARGB(255, 212, 103, 84),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Saturn
+                Positioned(
+                  left: saturnLeft-23.87,
+                  top: saturnTop-23.87,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Set the selected planet and associated text
+                      setState(() {
+                        selectedPlanet = 'Saturn';
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: 47.74,
+                      height: 47.74,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.fromARGB(255, 192, 61, 37),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Uranus
+                Positioned(
+                  left: uranusLeft-10.39,
+                  top: uranusTop-10.39,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Set the selected planet and associated text
+                      setState(() {
+                        selectedPlanet = 'Uranus';
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: 20.78,
+                      height: 20.78,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.fromARGB(255, 55, 131, 141),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Neptune
+                Positioned(
+                  left: neptuneLeft-10.08,
+                  top: neptuneTop-10.08,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Set the selected planet and associated text
+                      setState(() {
+                        selectedPlanet = 'Neptune';
+                      });
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: 20.16,
+                      height: 20.16,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.fromARGB(255, 97, 33, 150),
+                      ),
+                    ),
+                  ),
+                ),
+                // Add the custom painter for orbits
+                // Display specified text for the selected planet
+                if (selectedPlanet.isNotEmpty)
+                  _PlanetInfo(planetName: selectedPlanet),
+              ],
+            ),
+          ),
+        ),
+      )
+    );
+  }
+}

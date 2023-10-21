@@ -36,8 +36,11 @@ List<String> planetNames = [
   "Jupiter",
   "Saturn",
   "Uranus",
-  "Neptune"
+  "Neptune",
+  "Moon"
 ];
+
+String planet = '';
 
 Position currentPos = Position(
   latitude: 0.0,
@@ -143,6 +146,15 @@ List<List<List<double>>> calculatePlanetPositions() {
         case 7:
           temp = Vsop87aMicro.getNeptune(t);
           break;
+        case 8:
+          temp = Vsop87aMicro.getEmb(t);
+
+          List<double> earthTemp = Vsop87aMicro.getEarth(t);
+
+          temp[0] = earthTemp[0] + ((temp[0] - earthTemp[0])*84.6776987);
+          temp[1] = earthTemp[1] + ((temp[1] - earthTemp[1])*84.6776987);
+          temp[2] = earthTemp[2] + ((temp[2] - earthTemp[2])*84.6776987);
+          break;
         default:
           break;
       }
@@ -187,15 +199,28 @@ planetInformation(List<List<double>> coord, double JD) {
   }
 
   List<double> info = riseSetInfo(selectedPlanet, JD, currentPos);
+  if (selectedPlanet != 3) {
+    selectedPlanetInfo[0] = info.elementAt(3); // azimuth
+    selectedPlanetInfo[1] = info.elementAt(4); // altitude
+    selectedPlanetInfo[5] = (info.elementAt(0) - 7) % 24; // trans
+    selectedPlanetInfo[6] = (info.elementAt(1) - 7) % 24; // rise
+    selectedPlanetInfo[7] = (info.elementAt(2) - 7) % 24; // set
+  }
+  else
+    {
+      selectedPlanetInfo[0] = 0; // azimuth
+      selectedPlanetInfo[1] = 0; // altitude
+      selectedPlanetInfo[5] = 0; // trans
+      selectedPlanetInfo[6] = 0; // rise
+      selectedPlanetInfo[7] = 0; // set
+    }
 
-  selectedPlanetInfo[0] = info.elementAt(3); // azimuth
-  selectedPlanetInfo[1] = info.elementAt(4); // altitude
+  print(selectedPlanetInfo[0]);
+  print(selectedPlanetInfo[1]);
   selectedPlanetInfo[2] = sunDistance; // sun dist
   selectedPlanetInfo[3] = earthDistance; // earth dist
   selectedPlanetInfo[4] = lightSeconds; // light seconds
-  selectedPlanetInfo[5] = (info.elementAt(0) - 7) % 24; // trans
-  selectedPlanetInfo[6] = (info.elementAt(1) - 7) % 24; // rise
-  selectedPlanetInfo[7] = (info.elementAt(2) - 7) % 24; // set
+
 }
 
 Future<Position> getCurrentPosition() async {
@@ -241,8 +266,11 @@ class _MyHomePageState extends State<MyHomePage> {
   List<double> uranusTemp = [0, 0, 0];
   List<double> neptuneTemp = [0, 0, 0];
 
+  List<double> moonTemp = [0, 0, 0];
+
   // longitude, latitude, radius, right-ascension, declination
   List<List<double>> coordinates = [
+    [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
@@ -260,13 +288,13 @@ class _MyHomePageState extends State<MyHomePage> {
   double distanceFromSun = 0.0;
   double distanceFromEarth = 0.0;
   String lightDistance = '';
-  String planet = '';
+
 
   double transit = 0;
   double set = 0;
   double rise = 0;
 
-  double _heading = 0.0;
+  double _header = 0.0;
   double _pitch = 0.0;
 
   bool guidingMode = false; // Variable to track guiding mode
@@ -279,21 +307,36 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterCompass.events?.listen((event) {
       if (event?.heading != null) {
         setState(() {
-          _heading = (event.heading! + 360) % 360;
+
+          _header = event.heading!;
         });
       }
     });
   }
 
+
+
   Widget buildArrow(double azimuthDifference) {
-    azimuthDifference = _heading - selectedPlanetInfo[0];
+
+    print(_header);
+    azimuthDifference = _header - selectedPlanetInfo[0];
+    if (selectedPlanet == 3)
+      {
+        azimuthDifference = _header;
+      }
+
+
+      double screenHeight = MediaQuery.of(context).size.height;
     // Rotate the arrow based on azimuth difference
-    return Transform.rotate(
-      angle: ((-(azimuthDifference + 90)) * (pi / 180)),
-      child: Icon(
-        Icons.arrow_forward,
-        size: 50.0,
-        color: Colors.red, // Adjust color as needed
+    return Container(
+      padding: EdgeInsets.only(top: screenHeight*.6), // Add top padding of 36 pixels
+      child: Transform.rotate(
+        angle: (270-azimuthDifference) * (pi/180),
+        child: Icon(
+          Icons.arrow_forward,
+          size: 60.0,
+          color: Colors.red, // Adjust color as needed
+        ),
       ),
     );
   }
@@ -342,12 +385,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void _updateJD([bool init = false]) {
     setState(() {
       DateTime time = DateTime.now().toUtc();
+
       _currentJD = JulianDate.gregorianDateToJulianDate(
           time.year, time.month, time.day, time.hour, time.minute, time.second);
 
       if (init) {
-        print("hey");
-        print(_currentJD);
         _updatePosition();
       }
 
@@ -386,6 +428,13 @@ class _MyHomePageState extends State<MyHomePage> {
     uranusTemp = Vsop87aMicro.getUranus(t);
     neptuneTemp = Vsop87aMicro.getNeptune(t);
 
+    moonTemp = Vsop87aMicro.getEmb(t);
+
+    moonTemp[0] = ((moonTemp[0] - earthTemp[0])*84.6776987);
+    moonTemp[1] = ((moonTemp[1] - earthTemp[1])*84.6776987);
+    moonTemp[2] = ((moonTemp[2] - earthTemp[2])*84.6776987);
+
+
     coordinates[0] = geocartesianToEclipticCoordinates(
         mercuryTemp[0], mercuryTemp[1], mercuryTemp[2]);
     coordinates[1] = geocartesianToEclipticCoordinates(
@@ -395,6 +444,7 @@ class _MyHomePageState extends State<MyHomePage> {
     coordinates[3] = geocartesianToEclipticCoordinates(
         marsTemp[0], marsTemp[1], marsTemp[2]);
 
+
     coordinates[4] = geocartesianToEclipticCoordinates(
         jupiterTemp[0], jupiterTemp[1], jupiterTemp[2]);
     coordinates[5] = geocartesianToEclipticCoordinates(
@@ -403,6 +453,9 @@ class _MyHomePageState extends State<MyHomePage> {
         uranusTemp[0], uranusTemp[1], uranusTemp[2]);
     coordinates[7] = geocartesianToEclipticCoordinates(
         neptuneTemp[0], neptuneTemp[1], neptuneTemp[2]);
+
+    coordinates[8] = geocartesianToEclipticCoordinates(
+        moonTemp[0], moonTemp[1], moonTemp[2]);
 
     fetchData();
 
@@ -453,71 +506,116 @@ class _MyHomePageState extends State<MyHomePage> {
               saturnCoordinates: saturnTemp,
               uranusCoordinates: uranusTemp,
               neptuneCoordinates: neptuneTemp,
+              moonCoordinates: moonTemp,
               planetPositions: widget.planetPositions,
             ),
+          if (selectedPlanet >= 0)
 
             // Text widgets
             Padding(
+    
               padding: const EdgeInsets.all(16.0),
+
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  Text(
-                    _currentGregorian,
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 105, 105, 105),
-                    ),
-                  ),
-                  Text(
-                    '$_currentJD',
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 105, 105, 105),
-                    ),
-                  ),
-                  Text(
-                    '$planet',
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 105, 105, 105),
-                    ),
-                  ),
-                  Text(
-                    'Distance From Sun: $distanceFromSun',
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 105, 105, 105),
-                    ),
-                  ),
-                  Text(
-                    'Distance From Earth: $distanceFromEarth\nLight Hours From Earth: $lightDistance',
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 105, 105, 105),
-                    ),
-                  ),
-                  Text(
-                    'TRANSIT: ' +
-                        (transit.floor()).toString() +
-                        ':' +
-                        formatTimeWithLeadingZeros(
-                            ((transit - transit.floor()) * 60).floor()) +
-                        '\n RISE: ' +
-                        (rise.floor()).toString() +
-                        ':' +
-                        formatTimeWithLeadingZeros(
-                            ((rise - rise.floor()) * 60).floor()) +
-                        '\n SET: ' +
-                        (set.floor()).toString() +
-                        ':' +
-                        formatTimeWithLeadingZeros(
-                            ((set - set.floor()) * 60).floor()),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: <Widget>[
+              Text(
+              _currentGregorian,
+              style: TextStyle(
+              color: const Color.fromARGB(255, 105, 105, 105),
+              ),
+              ),
+              Text(
+              _currentJD.toStringAsFixed(5),
+              style: TextStyle(
+              color: const Color.fromARGB(255, 105, 105, 105),
+              ),
+              ),
+              Text(
+              '$planet',
+              style: TextStyle(
+              color: const Color.fromARGB(255, 105, 105, 105),
+              ),
+              ),
+              if (selectedPlanet != 0)
+                Text(
+
+                    'Distance From Sun: ' + distanceFromSun.toStringAsFixed(5),
                     style: TextStyle(
                       color: const Color.fromARGB(255, 105, 105, 105),
                     ),
                   ),
 
-                  // HERE GOES DATA ON THE PLANET
-                ],
+
+
+                if (selectedPlanet != 3)
+
+                Text(
+                'Distance From Earth: ' + distanceFromEarth.toStringAsFixed(5) + '\nLight Hours From Earth: ' + lightDistance,
+                style: TextStyle(
+                color: const Color.fromARGB(255, 105, 105, 105),
+                ),
+                ),
+                if (selectedPlanet != 3)
+
+                  Text(
+                'TRANSIT: ' +
+                (transit.floor()).toString() +
+                ':' +
+                formatTimeWithLeadingZeros(
+                ((transit - transit.floor()) * 60).floor()) +
+                '\n RISE: ' +
+                (rise.floor()).toString() +
+                ':' +
+                formatTimeWithLeadingZeros(
+                ((rise - rise.floor()) * 60).floor()) +
+                '\n SET: ' +
+                (set.floor()).toString() +
+                ':' +
+                formatTimeWithLeadingZeros(
+                ((set - set.floor()) * 60).floor()),
+                style: TextStyle(
+                color: const Color.fromARGB(255, 105, 105, 105),
+                ),
+                ),
+
+              // HERE GOES DATA ON THE PLANET
+              ],
               ),
+
             ),
+
+            if (selectedPlanet < 0)
+
+            // Text widgets
+              Padding(
+
+                padding: const EdgeInsets.all(16.0),
+
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: <Widget>[
+                    Text(
+                      _currentGregorian,
+                      style: TextStyle(
+                        color: const Color.fromARGB(255, 105, 105, 105),
+                      ),
+                    ),
+                    Text(
+                      '$_currentJD',
+                      style: TextStyle(
+                        color: const Color.fromARGB(255, 105, 105, 105),
+                      ),
+                    ),
+                ]
+
+              ),
+              ),
+
+
+
             if (guidingMode)
               Center(
                 child: buildArrow(azimuthDifference),
@@ -535,21 +633,23 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
 
             Align(
-              alignment: Alignment.topCenter,
+              alignment: Alignment.bottomLeft,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: ElevatedButton(
+                child: FloatingActionButton(
                   onPressed: () {
                     setState(() {
                       guidingMode = !guidingMode;
                     });
                   },
-                  child: Text(guidingMode
-                      ? 'Deactivate Guiding Mode'
-                      : 'Activate Guiding Mode'),
+                  backgroundColor: Color.fromRGBO(255, 255, 255, 0), // Background color
+                  child: Icon(
+                    guidingMode ? Icons.close : Icons.navigation,
+                    color: Colors.white, // Icon color
+                  ),
                 ),
               ),
-            ),
+            )
           ],
         ),
       ),
@@ -567,6 +667,8 @@ class SolarSystem extends StatefulWidget {
   final List<double> uranusCoordinates;
   final List<double> neptuneCoordinates;
 
+  final List<double> moonCoordinates;
+
   final List<List<List<double>>> planetPositions;
 
   SolarSystem({
@@ -578,6 +680,7 @@ class SolarSystem extends StatefulWidget {
     required this.saturnCoordinates,
     required this.uranusCoordinates,
     required this.neptuneCoordinates,
+    required this.moonCoordinates,
     required this.planetPositions,
   });
 
@@ -663,6 +766,9 @@ class _SolarSystemState extends State<SolarSystem> {
   double neptuneLeft = 0;
   double neptuneTop = 0;
 
+  double moonLeft = 0;
+  double moonTop = 0;
+
   _updateLocations() {
     mercuryLeft = sunPosX + (widget.mercuryCoordinates[0] * astroScale);
     mercuryTop = sunPosY + (-widget.mercuryCoordinates[1] * astroScale);
@@ -687,6 +793,10 @@ class _SolarSystemState extends State<SolarSystem> {
 
     neptuneLeft = sunPosX + (widget.neptuneCoordinates[0] * astroScale);
     neptuneTop = sunPosY + (-widget.neptuneCoordinates[1] * astroScale);
+
+    moonLeft = earthLeft + (widget.moonCoordinates[0] * astroScale*50);
+    moonTop = earthTop - (widget.moonCoordinates[1] * astroScale*50);
+
   }
 
   TransformationController _transformationController =
@@ -725,7 +835,7 @@ class _SolarSystemState extends State<SolarSystem> {
             boundaryMargin: EdgeInsets.only(
                 left: 1250.0, top: 1750.0, right: 500.0, bottom: 250.0),
             minScale: 0.1,
-            maxScale: 7.5,
+            maxScale: 12.5,
             transformationController: _transformationController,
             constrained: false,
             child: SizedBox(
@@ -748,6 +858,7 @@ class _SolarSystemState extends State<SolarSystem> {
                         // Set the selected planet and associated text
                         setState(() {
                           selectedPlanet = 0;
+                          planet = "Sun";
                         });
 
                         handleTap(sunPosX, sunPosY);
@@ -773,6 +884,7 @@ class _SolarSystemState extends State<SolarSystem> {
                         // Set the selected planet and associated text
                         setState(() {
                           selectedPlanet = 1;
+                          planet = "Mercury";
                         });
 
                         handleTap(mercuryLeft, mercuryTop);
@@ -798,6 +910,7 @@ class _SolarSystemState extends State<SolarSystem> {
                         // Set the selected planet and associated text
                         setState(() {
                           selectedPlanet = 2;
+                          planet = "Venus";
                         });
 
                         handleTap(venusLeft, venusTop);
@@ -823,6 +936,7 @@ class _SolarSystemState extends State<SolarSystem> {
                         // Set the selected planet and associated text
                         setState(() {
                           selectedPlanet = 3;
+                          planet = "Earth";
                         });
 
                         handleTap(earthLeft, earthTop);
@@ -840,19 +954,30 @@ class _SolarSystemState extends State<SolarSystem> {
                   ),
 
                   // Moon
-                  /*Positioned(
-                    left: 220.0,
-                    top: 150.0,
-                    child: Container(
-                      alignment: Alignment.center,
-                      width: 4.0,
-                      height: 4.0,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey,
+                  Positioned(
+                    left: moonLeft - 1,
+                    top: moonTop - 1,
+                    child: GestureDetector(
+                      onTap: () {
+                        // Set the selected planet and associated text
+                        setState(() {
+                          selectedPlanet = 9;
+                          planet = "Moon";
+                        });
+
+                        handleTap(moonLeft, moonTop);
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        width: 2,
+                        height: 2,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
-                  ),*/
+                  ),
 
                   // Mars
                   Positioned(
@@ -863,6 +988,7 @@ class _SolarSystemState extends State<SolarSystem> {
                         // Set the selected planet and associated text
                         setState(() {
                           selectedPlanet = 4;
+                          planet = "Mars";
                         });
 
                         handleTap(marsLeft, marsTop);
@@ -888,6 +1014,7 @@ class _SolarSystemState extends State<SolarSystem> {
                         // Set the selected planet and associated text
                         setState(() {
                           selectedPlanet = 5;
+                          planet = "Jupiter";
                         });
 
                         handleTap(jupiterLeft, jupiterTop);
@@ -913,6 +1040,7 @@ class _SolarSystemState extends State<SolarSystem> {
                         // Set the selected planet and associated text
                         setState(() {
                           selectedPlanet = 6;
+                          planet = "Saturn";
                         });
 
                         handleTap(saturnLeft, saturnTop);
@@ -938,6 +1066,7 @@ class _SolarSystemState extends State<SolarSystem> {
                         // Set the selected planet and associated text
                         setState(() {
                           selectedPlanet = 7;
+                          planet = "Uranus";
                         });
 
                         handleTap(uranusLeft, uranusTop);
@@ -963,6 +1092,7 @@ class _SolarSystemState extends State<SolarSystem> {
                         // Set the selected planet and associated text
                         setState(() {
                           selectedPlanet = 8;
+                          planet = "Neptune";
                         });
 
                         handleTap(neptuneLeft, neptuneTop);

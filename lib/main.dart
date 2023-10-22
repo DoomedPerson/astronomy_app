@@ -10,6 +10,7 @@ import 'package:flutter/gestures.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:io' show Platform;
 
 void main() {
   List<List<List<double>>> planetPositions = calculatePlanetPositions();
@@ -94,6 +95,22 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+Future<void> getPerms() async {
+  if (await Permission.location.serviceStatus.isEnabled) {
+    var status = await Permission.location.status;
+    if (status.isGranted) {
+    } else {
+      Map<Permission, PermissionStatus> status = await [
+        Permission.location,
+      ].request();
+    }
+  } else {
+    if (await Permission.location.isPermanentlyDenied) {
+      openAppSettings();
+    }
+  }
+}
+
 List<List<List<double>>> calculatePlanetPositions() {
   final yearLengths = {
     88 / 60,
@@ -151,9 +168,9 @@ List<List<List<double>>> calculatePlanetPositions() {
 
           List<double> earthTemp = Vsop87aMicro.getEarth(t);
 
-          temp[0] = earthTemp[0] + ((temp[0] - earthTemp[0])*84.6776987);
-          temp[1] = earthTemp[1] + ((temp[1] - earthTemp[1])*84.6776987);
-          temp[2] = earthTemp[2] + ((temp[2] - earthTemp[2])*84.6776987);
+          temp[0] = earthTemp[0] + ((temp[0] - earthTemp[0]) * 84.6776987);
+          temp[1] = earthTemp[1] + ((temp[1] - earthTemp[1]) * 84.6776987);
+          temp[2] = earthTemp[2] + ((temp[2] - earthTemp[2]) * 84.6776987);
           break;
         default:
           break;
@@ -205,22 +222,19 @@ planetInformation(List<List<double>> coord, double JD) {
     selectedPlanetInfo[5] = (info.elementAt(0) - 7) % 24; // trans
     selectedPlanetInfo[6] = (info.elementAt(1) - 7) % 24; // rise
     selectedPlanetInfo[7] = (info.elementAt(2) - 7) % 24; // set
+  } else {
+    selectedPlanetInfo[0] = 0; // azimuth
+    selectedPlanetInfo[1] = 0; // altitude
+    selectedPlanetInfo[5] = 0; // trans
+    selectedPlanetInfo[6] = 0; // rise
+    selectedPlanetInfo[7] = 0; // set
   }
-  else
-    {
-      selectedPlanetInfo[0] = 0; // azimuth
-      selectedPlanetInfo[1] = 0; // altitude
-      selectedPlanetInfo[5] = 0; // trans
-      selectedPlanetInfo[6] = 0; // rise
-      selectedPlanetInfo[7] = 0; // set
-    }
 
-  print(selectedPlanetInfo[0]);
-  print(selectedPlanetInfo[1]);
+  print(selectedPlanetInfo[0].toString() + " AZIMUTH");
+  print(selectedPlanetInfo[1].toString() + " AZIMUTH");
   selectedPlanetInfo[2] = sunDistance; // sun dist
   selectedPlanetInfo[3] = earthDistance; // earth dist
   selectedPlanetInfo[4] = lightSeconds; // light seconds
-
 }
 
 Future<Position> getCurrentPosition() async {
@@ -289,7 +303,6 @@ class _MyHomePageState extends State<MyHomePage> {
   double distanceFromEarth = 0.0;
   String lightDistance = '';
 
-
   double transit = 0;
   double set = 0;
   double rise = 0;
@@ -307,31 +320,33 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterCompass.events?.listen((event) {
       if (event?.heading != null) {
         setState(() {
-
           _header = event.heading!;
+
+          if (_header <= 180) {
+            _header += 180;
+          }
         });
       }
     });
   }
 
-
-
   Widget buildArrow(double azimuthDifference) {
+    _header %= 360;
 
-    print(_header);
-    azimuthDifference = _header - selectedPlanetInfo[0];
-    if (selectedPlanet == 3)
-      {
-        azimuthDifference = _header;
-      }
+    double off = 90;
 
+    azimuthDifference = _header - (selectedPlanetInfo[0]);
+    if (selectedPlanet == 3) {
+      azimuthDifference = _header;
+    }
 
-      double screenHeight = MediaQuery.of(context).size.height;
+    double screenHeight = MediaQuery.of(context).size.height;
     // Rotate the arrow based on azimuth difference
     return Container(
-      padding: EdgeInsets.only(top: screenHeight*.6), // Add top padding of 36 pixels
+      padding: EdgeInsets.only(
+          top: screenHeight * .6), // Add top padding of 36 pixels
       child: Transform.rotate(
-        angle: (270-azimuthDifference) * (pi/180),
+        angle: (off - azimuthDifference) * (pi / 180),
         child: Icon(
           Icons.arrow_forward,
           size: 60.0,
@@ -353,6 +368,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     _updateJD();
     _updatePosition();
+    getPerms();
+
     super.initState();
 
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -430,10 +447,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     moonTemp = Vsop87aMicro.getEmb(t);
 
-    moonTemp[0] = ((moonTemp[0] - earthTemp[0])*84.6776987);
-    moonTemp[1] = ((moonTemp[1] - earthTemp[1])*84.6776987);
-    moonTemp[2] = ((moonTemp[2] - earthTemp[2])*84.6776987);
-
+    moonTemp[0] = ((moonTemp[0] - earthTemp[0]) * 84.6776987);
+    moonTemp[1] = ((moonTemp[1] - earthTemp[1]) * 84.6776987);
+    moonTemp[2] = ((moonTemp[2] - earthTemp[2]) * 84.6776987);
 
     coordinates[0] = geocartesianToEclipticCoordinates(
         mercuryTemp[0], mercuryTemp[1], mercuryTemp[2]);
@@ -443,7 +459,6 @@ class _MyHomePageState extends State<MyHomePage> {
         earthTemp[0], earthTemp[1], earthTemp[2]);
     coordinates[3] = geocartesianToEclipticCoordinates(
         marsTemp[0], marsTemp[1], marsTemp[2]);
-
 
     coordinates[4] = geocartesianToEclipticCoordinates(
         jupiterTemp[0], jupiterTemp[1], jupiterTemp[2]);
@@ -509,93 +524,14 @@ class _MyHomePageState extends State<MyHomePage> {
               moonCoordinates: moonTemp,
               planetPositions: widget.planetPositions,
             ),
-          if (selectedPlanet >= 0)
+            if (selectedPlanet >= 0)
 
-            // Text widgets
-            Padding(
-    
-              padding: const EdgeInsets.all(16.0),
-
-              child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget>[
-              Text(
-              _currentGregorian,
-              style: TextStyle(
-              color: const Color.fromARGB(255, 105, 105, 105),
-              ),
-              ),
-              Text(
-              _currentJD.toStringAsFixed(5),
-              style: TextStyle(
-              color: const Color.fromARGB(255, 105, 105, 105),
-              ),
-              ),
-              Text(
-              '$planet',
-              style: TextStyle(
-              color: const Color.fromARGB(255, 105, 105, 105),
-              ),
-              ),
-              if (selectedPlanet != 0)
-                Text(
-
-                    'Distance From Sun: ' + distanceFromSun.toStringAsFixed(5),
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 105, 105, 105),
-                    ),
-                  ),
-
-
-
-                if (selectedPlanet != 3)
-
-                Text(
-                'Distance From Earth: ' + distanceFromEarth.toStringAsFixed(5) + '\nLight Hours From Earth: ' + lightDistance,
-                style: TextStyle(
-                color: const Color.fromARGB(255, 105, 105, 105),
-                ),
-                ),
-                if (selectedPlanet != 3)
-
-                  Text(
-                'TRANSIT: ' +
-                (transit.floor()).toString() +
-                ':' +
-                formatTimeWithLeadingZeros(
-                ((transit - transit.floor()) * 60).floor()) +
-                '\n RISE: ' +
-                (rise.floor()).toString() +
-                ':' +
-                formatTimeWithLeadingZeros(
-                ((rise - rise.floor()) * 60).floor()) +
-                '\n SET: ' +
-                (set.floor()).toString() +
-                ':' +
-                formatTimeWithLeadingZeros(
-                ((set - set.floor()) * 60).floor()),
-                style: TextStyle(
-                color: const Color.fromARGB(255, 105, 105, 105),
-                ),
-                ),
-
-              // HERE GOES DATA ON THE PLANET
-              ],
-              ),
-
-            ),
-
-            if (selectedPlanet < 0)
-
-            // Text widgets
+              // Text widgets
               Padding(
-
                 padding: const EdgeInsets.all(16.0),
-
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       _currentGregorian,
@@ -604,17 +540,86 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
                     Text(
-                      '$_currentJD',
+                      _currentJD.toStringAsFixed(5),
                       style: TextStyle(
                         color: const Color.fromARGB(255, 105, 105, 105),
                       ),
                     ),
-                ]
+                    Text(
+                      '$planet',
+                      style: TextStyle(
+                        color: const Color.fromARGB(255, 105, 105, 105),
+                      ),
+                    ),
+                    if (selectedPlanet != 0)
+                      Text(
+                        'Distance From Sun: ' +
+                            distanceFromSun.toStringAsFixed(5),
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 105, 105, 105),
+                        ),
+                      ),
 
+                    if (selectedPlanet != 3)
+                      Text(
+                        'Distance From Earth: ' +
+                            distanceFromEarth.toStringAsFixed(5) +
+                            '\nLight Hours From Earth: ' +
+                            lightDistance,
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 105, 105, 105),
+                        ),
+                      ),
+                    if (selectedPlanet != 3)
+                      Text(
+                        'TRANSIT: ' +
+                            (transit.floor()).toString() +
+                            ':' +
+                            formatTimeWithLeadingZeros(
+                                ((transit - transit.floor()) * 60).floor()) +
+                            '\n RISE: ' +
+                            (rise.floor()).toString() +
+                            ':' +
+                            formatTimeWithLeadingZeros(
+                                ((rise - rise.floor()) * 60).floor()) +
+                            '\n SET: ' +
+                            (set.floor()).toString() +
+                            ':' +
+                            formatTimeWithLeadingZeros(
+                                ((set - set.floor()) * 60).floor()),
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 105, 105, 105),
+                        ),
+                      ),
+
+                    // HERE GOES DATA ON THE PLANET
+                  ],
+                ),
               ),
+
+            if (selectedPlanet < 0)
+
+              // Text widgets
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      Text(
+                        _currentGregorian,
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 105, 105, 105),
+                        ),
+                      ),
+                      Text(
+                        '$_currentJD',
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 105, 105, 105),
+                        ),
+                      ),
+                    ]),
               ),
-
-
 
             if (guidingMode)
               Center(
@@ -642,7 +647,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       guidingMode = !guidingMode;
                     });
                   },
-                  backgroundColor: Color.fromRGBO(255, 255, 255, 0), // Background color
+                  backgroundColor:
+                      Color.fromRGBO(255, 255, 255, 0), // Background color
                   child: Icon(
                     guidingMode ? Icons.close : Icons.navigation,
                     color: Colors.white, // Icon color
@@ -770,6 +776,9 @@ class _SolarSystemState extends State<SolarSystem> {
   double moonTop = 0;
 
   _updateLocations() {
+
+    getPerms();
+
     mercuryLeft = sunPosX + (widget.mercuryCoordinates[0] * astroScale);
     mercuryTop = sunPosY + (-widget.mercuryCoordinates[1] * astroScale);
 
@@ -794,9 +803,8 @@ class _SolarSystemState extends State<SolarSystem> {
     neptuneLeft = sunPosX + (widget.neptuneCoordinates[0] * astroScale);
     neptuneTop = sunPosY + (-widget.neptuneCoordinates[1] * astroScale);
 
-    moonLeft = earthLeft + (widget.moonCoordinates[0] * astroScale*50);
-    moonTop = earthTop - (widget.moonCoordinates[1] * astroScale*50);
-
+    moonLeft = earthLeft + (widget.moonCoordinates[0] * astroScale * 50);
+    moonTop = earthTop - (widget.moonCoordinates[1] * astroScale * 50);
   }
 
   TransformationController _transformationController =

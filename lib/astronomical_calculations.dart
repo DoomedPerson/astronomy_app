@@ -470,7 +470,6 @@ double subSolarLongJD = 2460242.578761574;
 
 double earthOrientation(double long, double jd)
 {
-  long = 122;
 
   double timePast = jd-subSolarLongJD;
 

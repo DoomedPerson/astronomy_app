@@ -377,88 +377,85 @@ List<double> getBodyLightAdjusted(List<double> origin, int body, double jd) {
   return b;
 }
 
-const torad = pi/180.0;
+const torad = pi / 180.0;
 
-double sind(r){
-  return sin(r*torad);
+double sind(r) {
+  return sin(r * torad);
 }
 
-double cosd(r){
-  return cos(r*torad);
+double cosd(r) {
+  return cos(r * torad);
 }
 
-List<double> getGeocentricMoonPos(jd){
-  double T = (jd-2451545)/36525;
-  double L = 218.32 + 481267.881*T + 6.29*sind(135.0 + 477198.87*T) - 1.27*sind(259.3 - 413335.36*T) + 0.66*sind(235.7 + 890534.22*T) + 0.21*sind(269.9 + 954397.74*T) - 0.19*sind(357.5 + 35999.05*T) - 0.11*sind(186.5 + 966404.03*T);
-  double B = 5.13*sind( 93.3 + 483202.02*T) + 0.28*sind(228.2 + 960400.89*T) - 0.28*sind(318.3 + 6003.15*T) - 0.17*sind(217.6 - 407332.21*T);
-  double P = 0.9508 + 0.0518*cosd(135.0 + 477198.87*T) + 0.0095*cosd(259.3 - 413335.36*T) + 0.0078*cosd(235.7 + 890534.22*T) + 0.0028*cosd(269.9 + 954397.74*T);
+List<double> getGeocentricMoonPos(jd) {
+  double T = (jd - 2451545) / 36525;
+  double L = 218.32 +
+      481267.881 * T +
+      6.29 * sind(135.0 + 477198.87 * T) -
+      1.27 * sind(259.3 - 413335.36 * T) +
+      0.66 * sind(235.7 + 890534.22 * T) +
+      0.21 * sind(269.9 + 954397.74 * T) -
+      0.19 * sind(357.5 + 35999.05 * T) -
+      0.11 * sind(186.5 + 966404.03 * T);
+  double B = 5.13 * sind(93.3 + 483202.02 * T) +
+      0.28 * sind(228.2 + 960400.89 * T) -
+      0.28 * sind(318.3 + 6003.15 * T) -
+      0.17 * sind(217.6 - 407332.21 * T);
+  double P = 0.9508 +
+      0.0518 * cosd(135.0 + 477198.87 * T) +
+      0.0095 * cosd(259.3 - 413335.36 * T) +
+      0.0078 * cosd(235.7 + 890534.22 * T) +
+      0.0028 * cosd(269.9 + 954397.74 * T);
 
-  double SD=0.2724*P;
-  double r=1/sind(P);
+  double SD = 0.2724 * P;
+  double r = 1 / sind(P);
 
   double l = cosd(B) * cosd(L);
-  double m = 0.9175*cosd(B)*sind(L) - 0.3978*sind(B);
-  double n = 0.3978*cosd(B)*sind(L) + 0.9175*sind(B);
+  double m = 0.9175 * cosd(B) * sind(L) - 0.3978 * sind(B);
+  double n = 0.3978 * cosd(B) * sind(L) + 0.9175 * sind(B);
 
-  double ra = atan2(m,l);
-  if(ra<0){ra+=2*pi;}
+  double ra = atan2(m, l);
+  if (ra < 0) {
+    ra += 2 * pi;
+  }
   double dec = asin(n);
 
   print(radToDeg(ra));
   print(radToDeg(dec));
-  return [ra,dec];
+  return [ra, dec];
 }
 
 double lunaryear = 29.53058770576;
-double lunarsecs = lunaryear * (24 * 60 *60);
+double lunarsecs = lunaryear * (24 * 60 * 60);
 
-String moonPhase(double epnewmoon, double jd)
-{
-  double currSecs = (jd-epnewmoon) % lunaryear;
+String moonPhase(double epnewmoon, double jd) {
+  double currSecs = (jd - epnewmoon) % lunaryear;
 
-  if (currSecs < 0)
-    {
-      currSecs += epnewmoon;
-    }
+  if (currSecs < 0) {
+    currSecs += epnewmoon;
+  }
 
   double currAge = currSecs;
 
   print(currAge);
 
-  if (currAge > 28.53 || currAge < 1)
-    {
-      return "assets/images/newMoon.png";
-    }
-  else if (currAge > 1 && currAge < 6.38264692644)
-    {
-      return "assets/images/waxingCrescent.png";
-    }
-  else if (currAge >= 1 && currAge < 6.38264692644)
-  {
+  if (currAge > 28.53 || currAge < 1) {
+    return "assets/images/newMoon.png";
+  } else if (currAge > 1 && currAge < 6.38264692644) {
     return "assets/images/waxingCrescent.png";
-  }
-  else if (currAge >= 6.38264692644 && currAge < 8.3826492644)
-  {
+  } else if (currAge >= 1 && currAge < 6.38264692644) {
+    return "assets/images/waxingCrescent.png";
+  } else if (currAge >= 6.38264692644 && currAge < 8.3826492644) {
     return "assets/images/firstQuarter.png";
-  }
-  else if (currAge >= 8.3826492644 && currAge < 13.76529385288)
-  {
+  } else if (currAge >= 8.3826492644 && currAge < 13.76529385288) {
     return "assets/images/waxingGibbous.png";
-  }
-  else if (currAge >= 13.76529385288 && currAge < 15.76529385288)
-  {
+  } else if (currAge >= 13.76529385288 && currAge < 15.76529385288) {
     return "assets/images/fullMoon.png";
-  }
-  else if (currAge >= 15.76529385288 && currAge < 21.14794077932)
-  {
+  } else if (currAge >= 15.76529385288 && currAge < 21.14794077932) {
     return "assets/images/waningGibbous.png";
-  }
-  else if (currAge >= 21.14794077932 && currAge < 23.14794077932)
-  {
+  } else if (currAge >= 21.14794077932 && currAge < 23.14794077932) {
     return "assets/images/secondQuarter.png";
-  }
-  else if (currAge >= 23.14794077932 && currAge < 28.53058770576)
-  {
+  } else if (currAge >= 23.14794077932 && currAge < 28.53058770576) {
     return "assets/images/waningCrescent.png";
   }
 
@@ -468,16 +465,14 @@ String moonPhase(double epnewmoon, double jd)
 double subSolarPointLon = 147.68;
 double subSolarLongJD = 2460242.578761574;
 
-double earthOrientation(double long, double jd)
-{
-
-  double timePast = jd-subSolarLongJD;
+double earthOrientation(double long, double jd) {
+  double timePast = (jd - subSolarLongJD).abs();
 
   double hoursPast = timePast % 0.977947983;
 
-  double angle = 360*hoursPast;
+  double angle = 360 * hoursPast;
 
-  double pointSpot = angle+(long-subSolarPointLon);
+  double pointSpot = angle + (long - subSolarPointLon);
 
   return pointSpot;
 }
@@ -494,93 +489,95 @@ List<double> riseSetInfo(int planet, double year, Position pos) {
   double h0 = -0.5667; // For stars and planets
 
   if (planet == 0) h0 = -0.8333;
-  if (planet == 9)
-    {
-      double h0 = 0.125;
+  if (planet == 9) {
+    double h0 = 0.125;
 
-      List<double> radec = getGeocentricMoonPos(year);
+    List<double> radec = getGeocentricMoonPos(year);
 
-      List<List<double>> ascdec = [getGeocentricMoonPos((year.floor() + .5) - 1),getGeocentricMoonPos((year.floor() + .5)),getGeocentricMoonPos((year.floor() + .5) + 1)];
+    List<List<double>> ascdec = [
+      getGeocentricMoonPos((year.floor() + .5) - 1),
+      getGeocentricMoonPos((year.floor() + .5)),
+      getGeocentricMoonPos((year.floor() + .5) + 1)
+    ];
 
-      List<double> altaz = raDecToAltAz(radec[0], radec[1], lat, -L, year);
+    List<double> altaz = raDecToAltAz(radec[0], radec[1], lat, -L, year);
 
-      print(altaz[0]);
-      print(altaz[1]);
+    print(altaz[0]);
+    print(altaz[1]);
 
-      double cosH = (sin(h0 * pi / 180.0) - sin(lat) * sin(ascdec[1][1])) /
-          (cos(lat) * cos(ascdec[1][1]));
-      double H0 = acos(cosH) * 180.0 / pi;
+    double cosH = (sin(h0 * pi / 180.0) - sin(lat) * sin(ascdec[1][1])) /
+        (cos(lat) * cos(ascdec[1][1]));
+    double H0 = acos(cosH) * 180.0 / pi;
 
-      double gmst = GMST(year.floor() + .5);
+    double gmst = GMST(year.floor() + .5);
 
-      double transit = ((ascdec[0][1] * toDeg) + (L * toDeg) - gmst) / 360.0;
-      double rise = transit - (H0 / 360.0);
-      double set = transit + (H0 / 360.0);
+    double transit = ((ascdec[0][1] * toDeg) + (L * toDeg) - gmst) / 360.0;
+    double rise = transit - (H0 / 360.0);
+    double set = transit + (H0 / 360.0);
 
-      double m0 = transit;
-      double m1 = rise;
-      double m2 = set;
+    double m0 = transit;
+    double m1 = rise;
+    double m2 = set;
 
-      double thetaTransit = gmst + (360.985647 * m0);
-      double thetaRise = gmst + (360.985647 * m1);
-      double thetaSet = gmst + (360.985647 * m2);
+    double thetaTransit = gmst + (360.985647 * m0);
+    double thetaRise = gmst + (360.985647 * m1);
+    double thetaSet = gmst + (360.985647 * m2);
 
-      int yearG = 0;
-      int month = 0;
-      double day = 0.0;
+    int yearG = 0;
+    int month = 0;
+    double day = 0.0;
 
-      (yearG, month, day) = jDToGregorian(year.toDouble());
+    (yearG, month, day) = jDToGregorian(year.toDouble());
 
-      double dT = deltaT(yearG);
+    double dT = deltaT(yearG);
 
-      double n0 = m0 + dT / 86400;
-      double n1 = m1 + dT / 86400;
-      double n2 = m2 + dT / 86400;
+    double n0 = m0 + dT / 86400;
+    double n1 = m1 + dT / 86400;
+    double n2 = m2 + dT / 86400;
 
-      double a = ascdec[0][0] - ascdec[0][0];
-      double b = ascdec[1][0] - ascdec[1][0];
-      double c = ascdec[2][0] + ascdec[2][0] - (2 * ascdec[1][0]);
+    double a = ascdec[0][0] - ascdec[0][0];
+    double b = ascdec[1][0] - ascdec[1][0];
+    double c = ascdec[2][0] + ascdec[2][0] - (2 * ascdec[1][0]);
 
-      double transitAsc = ascdec[1][0] + ((n0 / 2) * a + b + (n0 * c));
-      double riseAsc = ascdec[1][0] + ((n1 / 2) * a + b + (n1 * c));
-      double setAsc = ascdec[1][0] + ((n2 / 2) * a + b + (n2 * c));
+    double transitAsc = ascdec[1][0] + ((n0 / 2) * a + b + (n0 * c));
+    double riseAsc = ascdec[1][0] + ((n1 / 2) * a + b + (n1 * c));
+    double setAsc = ascdec[1][0] + ((n2 / 2) * a + b + (n2 * c));
 
-      a = ascdec[0][1] - ascdec[0][1];
-      b = ascdec[1][1] - ascdec[1][1];
-      c = ascdec[2][1] + ascdec[2][1] - (2 * ascdec[1][1]);
+    a = ascdec[0][1] - ascdec[0][1];
+    b = ascdec[1][1] - ascdec[1][1];
+    c = ascdec[2][1] + ascdec[2][1] - (2 * ascdec[1][1]);
 
-      double riseDec = ascdec[1][1] + (n1 / 2) * (a + b + (n1 * c));
-      double setDec = ascdec[1][1] + (n2 / 2) * (a + b + (n2 * c));
+    double riseDec = ascdec[1][1] + (n1 / 2) * (a + b + (n1 * c));
+    double setDec = ascdec[1][1] + (n2 / 2) * (a + b + (n2 * c));
 
-      double transH = thetaTransit - (L * toDeg) - radToDeg(transitAsc);
-      double riseH = thetaRise - (L * toDeg) - radToDeg(riseAsc);
-      double setH = thetaSet - (L * toDeg) - radToDeg(setAsc);
+    double transH = thetaTransit - (L * toDeg) - radToDeg(transitAsc);
+    double riseH = thetaRise - (L * toDeg) - radToDeg(riseAsc);
+    double setH = thetaSet - (L * toDeg) - radToDeg(setAsc);
 
-      double riseh = asin(sin(lat) * sin(riseDec) +
-          cos(lat) * cos(riseDec) * cos(degreesToRadians(riseH)));
-      double seth = asin(sin(lat) * sin(setDec) +
-          cos(lat) * cos(setDec) * cos(degreesToRadians(setH)));
+    double riseh = asin(sin(lat) * sin(riseDec) +
+        cos(lat) * cos(riseDec) * cos(degreesToRadians(riseH)));
+    double seth = asin(sin(lat) * sin(setDec) +
+        cos(lat) * cos(setDec) * cos(degreesToRadians(setH)));
 
-      double deltaMtransit = -(transH / 360);
+    double deltaMtransit = -(transH / 360);
 
-      double deltaMrise = (radToDeg(riseh) - h0) /
-          (360 * cos(riseDec) * cos(lat) * sin(degreesToRadians(riseH)));
-      double deltaMset = (radToDeg(seth) - h0) /
-          (360 * cos(setDec) * cos(lat) * sin(degreesToRadians(setH)));
+    double deltaMrise = (radToDeg(riseh) - h0) /
+        (360 * cos(riseDec) * cos(lat) * sin(degreesToRadians(riseH)));
+    double deltaMset = (radToDeg(seth) - h0) /
+        (360 * cos(setDec) * cos(lat) * sin(degreesToRadians(setH)));
 
-      transH += deltaMtransit;
-      rise += deltaMrise;
-      set += deltaMset;
+    transH += deltaMtransit;
+    rise += deltaMrise;
+    set += deltaMset;
 
-      return [
-        constrain(transit) * 24.0,
-        constrain(rise) * 24.0,
-        constrain(set) * 24.0,
-        radToDeg(altaz[0]),
-        radToDeg(altaz[1]),
-      ];
-
-    }
+    return [
+      constrain(transit) * 24.0,
+      constrain(rise) * 24.0,
+      constrain(set) * 24.0,
+      radToDeg(altaz[0]),
+      radToDeg(altaz[1]),
+    ];
+  }
 
   List<List<double>> ascdec = getRaDec(planet, year);
 
@@ -695,7 +692,7 @@ List<double> riseSetInfo(int planet, double year, Position pos) {
           Vsop87aMicro.getEarth(jd2et(year)), planet - 1, year);
       break;
     case 9:
-    //rad = Vsop87aMicro.getNeptune(jd2et(year));
+      //rad = Vsop87aMicro.getNeptune(jd2et(year));
       rad = getBodyLightAdjusted(
           Vsop87aMicro.getEmb(jd2et(year)), planet - 1, year);
       break;
@@ -705,8 +702,6 @@ List<double> riseSetInfo(int planet, double year, Position pos) {
       helioToGeo(rad, Vsop87aMicro.getEarth(jd2et(year))));
 
   List<double> altaz = raDecToAltAz(rad2[0], rad2[1], lat, -L, year);
-
-
 
   //print(altaz);
 

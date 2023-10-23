@@ -133,8 +133,7 @@ List<List<List<double>>> calculatePlanetPositions() {
   double currentJD = JulianDate.gregorianDateToJulianDate(
       time.year, time.month, time.day, time.hour, time.minute, time.second);
 
-  double newmoon = JulianDate.gregorianDateToJulianDate(
-      2000, 1, 6, 18, 14, 0);
+  double newmoon = JulianDate.gregorianDateToJulianDate(2000, 1, 6, 18, 14, 0);
 
   moonPhaseAddress = moonPhase(newmoon, currentJD);
 
@@ -148,61 +147,57 @@ List<List<List<double>>> calculatePlanetPositions() {
     List<List<double>> planetPositionsForYear = [];
 
     if (i == 8) {
-      upLim = 62*2;
+      upLim = 62 * 2;
       currentJD -= 62;
     }
 
-      for (int j = 0; j < upLim; j++) {
-        double t = jd2et(currentJD + yearLengths.elementAt(i) * j);
-        List<double> temp = [0, 0, 0];
+    for (int j = 0; j < upLim; j++) {
+      double t = jd2et(currentJD + yearLengths.elementAt(i) * j);
+      List<double> temp = [0, 0, 0];
 
-        switch (i) {
-          case 0:
-            temp = Vsop87aMicro.getMercury(t);
-            break;
-          case 1:
-            temp = Vsop87aMicro.getVenus(t);
-            break;
-          case 2:
-            temp = Vsop87aMicro.getEarth(t);
-            break;
-          case 3:
-            temp = Vsop87aMicro.getMars(t);
-            break;
-          case 4:
-            temp = Vsop87aMicro.getJupiter(t);
-            break;
-          case 5:
-            temp = Vsop87aMicro.getSaturn(t);
-            break;
-          case 6:
-            temp = Vsop87aMicro.getUranus(t);
-            break;
-          case 7:
-            temp = Vsop87aMicro.getNeptune(t);
-            break;
-          case 8:
-            temp = Vsop87aMicro.getEmb(t);
+      switch (i) {
+        case 0:
+          temp = Vsop87aMicro.getMercury(t);
+          break;
+        case 1:
+          temp = Vsop87aMicro.getVenus(t);
+          break;
+        case 2:
+          temp = Vsop87aMicro.getEarth(t);
+          break;
+        case 3:
+          temp = Vsop87aMicro.getMars(t);
+          break;
+        case 4:
+          temp = Vsop87aMicro.getJupiter(t);
+          break;
+        case 5:
+          temp = Vsop87aMicro.getSaturn(t);
+          break;
+        case 6:
+          temp = Vsop87aMicro.getUranus(t);
+          break;
+        case 7:
+          temp = Vsop87aMicro.getNeptune(t);
+          break;
+        case 8:
+          temp = Vsop87aMicro.getEmb(t);
 
-            List<double> earthTemp = Vsop87aMicro.getEarth(t);
+          List<double> earthTemp = Vsop87aMicro.getEarth(t);
 
+          temp[0] = earthTemp[0] + ((temp[0] - earthTemp[0]) * 4700.6776987);
 
+          temp[1] = earthTemp[1] + ((temp[1] - earthTemp[1]) * 4700.6776987);
 
-
-            temp[0] = earthTemp[0] + ((temp[0] - earthTemp[0]) * 4700.6776987);
-
-            temp[1] = earthTemp[1] + ((temp[1] - earthTemp[1]) * 4700.6776987);
-
-            break;
-          default:
-            break;
-        }
-
-
-        planetPositionsForYear.add([temp[0], temp[1]]);
+          break;
+        default:
+          break;
       }
 
-      positions.add(planetPositionsForYear);
+      planetPositionsForYear.add([temp[0], temp[1]]);
+    }
+
+    positions.add(planetPositionsForYear);
   }
 
   return positions;
@@ -344,7 +339,6 @@ class _MyHomePageState extends State<MyHomePage> {
       if (event?.heading != null) {
         setState(() {
           _header = event.heading!;
-
         });
       }
     });
@@ -389,7 +383,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _updateJD();
     _updatePosition();
     getPerms();
-
 
     super.initState();
 
@@ -735,24 +728,21 @@ class PlanetOrbitsPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     // Draw orbits for each planet
     for (int i = 0; i < 9; i++) {
-      if (i == 8)
-        {
-          Paint orbitPaint = Paint()
-            ..color = Colors.white
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = .05;
+      if (i == 8) {
+        Paint orbitPaint = Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = .05;
 
-          Path orbitPath = Path();
-          orbitPath.moveTo(
-              planetPositions[i][0][0] * 30, -planetPositions[i][0][1] * 30);
-          for (var j = 1; j < planetPositions[i].length; j++) {
-
-            orbitPath.lineTo(
-                planetPositions[i][j][0] * 30, -planetPositions[i][j][1] * 30);
-          }
-          canvas.drawPath(orbitPath, orbitPaint);
+        Path orbitPath = Path();
+        orbitPath.moveTo(
+            planetPositions[i][0][0] * 30, -planetPositions[i][0][1] * 30);
+        for (var j = 1; j < planetPositions[i].length; j++) {
+          orbitPath.lineTo(
+              planetPositions[i][j][0] * 30, -planetPositions[i][j][1] * 30);
         }
-      else {
+        canvas.drawPath(orbitPath, orbitPaint);
+      } else {
         Path orbitPath = Path();
         orbitPath.moveTo(
             planetPositions[i][0][0] * 30, -planetPositions[i][0][1] * 30);
@@ -784,8 +774,6 @@ class _SolarSystemState extends State<SolarSystem> {
     _timer = Timer.periodic(Duration(seconds: 60), (timer) {
       _updateLocations();
     });
-
-
   }
 
   double screenWidth = 0;
@@ -823,7 +811,6 @@ class _SolarSystemState extends State<SolarSystem> {
   double earthPy = 0;
 
   _updateLocations() {
-
     getPerms();
 
     DateTime time = DateTime.now().toUtc();
@@ -831,8 +818,7 @@ class _SolarSystemState extends State<SolarSystem> {
     double _currentJD = JulianDate.gregorianDateToJulianDate(
         time.year, time.month, time.day, time.hour, time.minute, time.second);
 
-
-    earthOrientation(currentPos.latitude, _currentJD);
+    double angle = earthOrientation(currentPos.latitude, _currentJD);
 
     mercuryLeft = sunPosX + (widget.mercuryCoordinates[0] * astroScale);
     mercuryTop = sunPosY + (-widget.mercuryCoordinates[1] * astroScale);
@@ -843,10 +829,11 @@ class _SolarSystemState extends State<SolarSystem> {
     earthLeft = sunPosX + (widget.earthCoordinates[0] * astroScale);
     earthTop = sunPosY + (-widget.earthCoordinates[1] * astroScale);
 
-    double angleBetweenSunAndEarth = atan2(earthLeft - sunPosY, earthTop - sunPosX);
+    double angleBetweenSunAndEarth =
+        atan2(sunPosY - earthTop, sunPosX - earthLeft);
 
-    earthPx = 1.0 * cos(degreesToRadians(earthPosAngle)+angleBetweenSunAndEarth);
-    earthPy = 1.0 * sin(degreesToRadians(earthPosAngle)+angleBetweenSunAndEarth);
+    earthPx = 2 * cos(degreesToRadians(angle) + angleBetweenSunAndEarth);
+    earthPy = 2 * sin(degreesToRadians(angle) + angleBetweenSunAndEarth);
 
     print(earthPx);
     print(earthPy);
@@ -1024,8 +1011,10 @@ class _SolarSystemState extends State<SolarSystem> {
                           children: [
                             // Red dot at the edge of the circle
                             Positioned(
-                              left: 2.61+earthPx, // Adjust the position as needed
-                              top: 2.61+earthPy, // Adjust the position as needed
+                              left: 2.61 +
+                                  earthPx, // Adjust the position as needed
+                              top: 2.61 +
+                                  earthPy, // Adjust the position as needed
                               child: Container(
                                 width: 1, // Adjust the size of the red dot
                                 height: 1, // Adjust the size of the red dot
@@ -1061,7 +1050,8 @@ class _SolarSystemState extends State<SolarSystem> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.white24, // Set the color of the circular outline
+                            color: Colors
+                                .white24, // Set the color of the circular outline
                             width: .15, // Set the width of the circular outline
                           ),
                         ),

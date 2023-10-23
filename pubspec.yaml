@@ -68,6 +68,16 @@ flutter:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
+  assets:
+    - assets/images/fullMoon.png
+    - assets/images/newMoon.png
+    - assets/images/firstQuarter.png
+    - assets/images/secondQuarter.png
+    - assets/images/waningGibbous.png
+    - assets/images/waxingGibbous.png
+    - assets/images/waningCrescent.png
+    - assets/images/waxingCrescent.png
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

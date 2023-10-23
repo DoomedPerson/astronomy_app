@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:astronomy_app/main.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
@@ -406,6 +407,80 @@ List<double> getGeocentricMoonPos(jd){
   print(radToDeg(ra));
   print(radToDeg(dec));
   return [ra,dec];
+}
+
+double lunaryear = 29.53058770576;
+double lunarsecs = lunaryear * (24 * 60 *60);
+
+String moonPhase(double epnewmoon, double jd)
+{
+  double currSecs = (jd-epnewmoon) % lunaryear;
+
+  if (currSecs < 0)
+    {
+      currSecs += epnewmoon;
+    }
+
+  double currAge = currSecs;
+
+  print(currAge);
+
+  if (currAge > 28.53 || currAge < 1)
+    {
+      return "assets/images/newMoon.png";
+    }
+  else if (currAge > 1 && currAge < 6.38264692644)
+    {
+      return "assets/images/waxingCrescent.png";
+    }
+  else if (currAge >= 1 && currAge < 6.38264692644)
+  {
+    return "assets/images/waxingCrescent.png";
+  }
+  else if (currAge >= 6.38264692644 && currAge < 8.3826492644)
+  {
+    return "assets/images/firstQuarter.png";
+  }
+  else if (currAge >= 8.3826492644 && currAge < 13.76529385288)
+  {
+    return "assets/images/waxingGibbous.png";
+  }
+  else if (currAge >= 13.76529385288 && currAge < 15.76529385288)
+  {
+    return "assets/images/fullMoon.png";
+  }
+  else if (currAge >= 15.76529385288 && currAge < 21.14794077932)
+  {
+    return "assets/images/waningGibbous.png";
+  }
+  else if (currAge >= 21.14794077932 && currAge < 23.14794077932)
+  {
+    return "assets/images/secondQuarter.png";
+  }
+  else if (currAge >= 23.14794077932 && currAge < 28.53058770576)
+  {
+    return "assets/images/waningCrescent.png";
+  }
+
+  return "assets/images/fullMoon.png";
+}
+
+double subSolarPointLon = 147.68;
+double subSolarLongJD = 2460242.578761574;
+
+double earthOrientation(double long, double jd)
+{
+  long = 122;
+
+  double timePast = jd-subSolarLongJD;
+
+  double hoursPast = timePast % 0.977947983;
+
+  double angle = 360*hoursPast;
+
+  double pointSpot = angle+(long-subSolarPointLon);
+
+  return pointSpot;
 }
 
 List<double> riseSetInfo(int planet, double year, Position pos) {

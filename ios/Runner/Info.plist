@@ -45,6 +45,8 @@
 	<string>To get location and direction</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>To get location and direction</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>To keep things running smooth</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

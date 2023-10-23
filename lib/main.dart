@@ -41,6 +41,10 @@ List<String> planetNames = [
   "Moon"
 ];
 
+double earthPosAngle = 0;
+
+String moonPhaseAddress = "assets/images/fullMoon";
+
 String planet = '';
 
 Position currentPos = Position(
@@ -120,7 +124,8 @@ List<List<List<double>>> calculatePlanetPositions() {
     4333 / 60,
     10756 / 60,
     30687 / 60,
-    60190 / 60
+    60190 / 60,
+    1
   };
   List<List<List<double>>> positions = [];
 
@@ -128,58 +133,76 @@ List<List<List<double>>> calculatePlanetPositions() {
   double currentJD = JulianDate.gregorianDateToJulianDate(
       time.year, time.month, time.day, time.hour, time.minute, time.second);
 
-  double t = jd2et(currentJD);
+  double newmoon = JulianDate.gregorianDateToJulianDate(
+      2000, 1, 6, 18, 14, 0);
 
-  for (int i = 0; i < 8; i++) {
+  moonPhaseAddress = moonPhase(newmoon, currentJD);
+
+  double t = jd2et(currentJD);
+  double upLim = 61;
+
+  double setJD = currentJD;
+
+  for (int i = 0; i < 9; i++) {
     int length = yearLengths.elementAt(i).toInt();
     List<List<double>> planetPositionsForYear = [];
 
-    for (int j = 0; j < 61; j++) {
-      double t = jd2et(currentJD + yearLengths.elementAt(i) * j);
-      List<double> temp = [0, 0, 0];
-
-      switch (i) {
-        case 0:
-          temp = Vsop87aMicro.getMercury(t);
-          break;
-        case 1:
-          temp = Vsop87aMicro.getVenus(t);
-          break;
-        case 2:
-          temp = Vsop87aMicro.getEarth(t);
-          break;
-        case 3:
-          temp = Vsop87aMicro.getMars(t);
-          break;
-        case 4:
-          temp = Vsop87aMicro.getJupiter(t);
-          break;
-        case 5:
-          temp = Vsop87aMicro.getSaturn(t);
-          break;
-        case 6:
-          temp = Vsop87aMicro.getUranus(t);
-          break;
-        case 7:
-          temp = Vsop87aMicro.getNeptune(t);
-          break;
-        case 8:
-          temp = Vsop87aMicro.getEmb(t);
-
-          List<double> earthTemp = Vsop87aMicro.getEarth(t);
-
-          temp[0] = earthTemp[0] + ((temp[0] - earthTemp[0]) * 84.6776987);
-          temp[1] = earthTemp[1] + ((temp[1] - earthTemp[1]) * 84.6776987);
-          temp[2] = earthTemp[2] + ((temp[2] - earthTemp[2]) * 84.6776987);
-          break;
-        default:
-          break;
-      }
-
-      planetPositionsForYear.add([temp[0], temp[1]]);
+    if (i == 8) {
+      upLim = 62*2;
+      currentJD -= 62;
     }
 
-    positions.add(planetPositionsForYear);
+      for (int j = 0; j < upLim; j++) {
+        double t = jd2et(currentJD + yearLengths.elementAt(i) * j);
+        List<double> temp = [0, 0, 0];
+
+        switch (i) {
+          case 0:
+            temp = Vsop87aMicro.getMercury(t);
+            break;
+          case 1:
+            temp = Vsop87aMicro.getVenus(t);
+            break;
+          case 2:
+            temp = Vsop87aMicro.getEarth(t);
+            break;
+          case 3:
+            temp = Vsop87aMicro.getMars(t);
+            break;
+          case 4:
+            temp = Vsop87aMicro.getJupiter(t);
+            break;
+          case 5:
+            temp = Vsop87aMicro.getSaturn(t);
+            break;
+          case 6:
+            temp = Vsop87aMicro.getUranus(t);
+            break;
+          case 7:
+            temp = Vsop87aMicro.getNeptune(t);
+            break;
+          case 8:
+            temp = Vsop87aMicro.getEmb(t);
+
+            List<double> earthTemp = Vsop87aMicro.getEarth(t);
+
+
+
+
+            temp[0] = earthTemp[0] + ((temp[0] - earthTemp[0]) * 4700.6776987);
+
+            temp[1] = earthTemp[1] + ((temp[1] - earthTemp[1]) * 4700.6776987);
+
+            break;
+          default:
+            break;
+        }
+
+
+        planetPositionsForYear.add([temp[0], temp[1]]);
+      }
+
+      positions.add(planetPositionsForYear);
   }
 
   return positions;
@@ -322,9 +345,6 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           _header = event.heading!;
 
-          if (_header <= 180) {
-            _header += 180;
-          }
         });
       }
     });
@@ -333,7 +353,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget buildArrow(double azimuthDifference) {
     _header %= 360;
 
-    double off = 90;
+    double off = 270;
 
     azimuthDifference = _header - (selectedPlanetInfo[0]);
     if (selectedPlanet == 3) {
@@ -369,6 +389,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _updateJD();
     _updatePosition();
     getPerms();
+
 
     super.initState();
 
@@ -488,6 +509,8 @@ class _MyHomePageState extends State<MyHomePage> {
     if (selectedPlanet >= 0) {
       planet = planetNames[selectedPlanet];
     }
+
+    earthPosAngle = earthOrientation(currentPos.longitude, _currentJD);
   }
 
   String formatWithLeadingZeros(int number) {
@@ -711,15 +734,34 @@ class PlanetOrbitsPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.stroke;
     // Draw orbits for each planet
-    for (int i = 0; i < 8; i++) {
-      Path orbitPath = Path();
-      orbitPath.moveTo(
-          planetPositions[i][0][0] * 30, -planetPositions[i][0][1] * 30);
-      for (var j = 1; j < planetPositions[i].length; j++) {
-        orbitPath.lineTo(
-            planetPositions[i][j][0] * 30, -planetPositions[i][j][1] * 30);
+    for (int i = 0; i < 9; i++) {
+      if (i == 8)
+        {
+          Paint orbitPaint = Paint()
+            ..color = Colors.white
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = .05;
+
+          Path orbitPath = Path();
+          orbitPath.moveTo(
+              planetPositions[i][0][0] * 30, -planetPositions[i][0][1] * 30);
+          for (var j = 1; j < planetPositions[i].length; j++) {
+
+            orbitPath.lineTo(
+                planetPositions[i][j][0] * 30, -planetPositions[i][j][1] * 30);
+          }
+          canvas.drawPath(orbitPath, orbitPaint);
+        }
+      else {
+        Path orbitPath = Path();
+        orbitPath.moveTo(
+            planetPositions[i][0][0] * 30, -planetPositions[i][0][1] * 30);
+        for (var j = 1; j < planetPositions[i].length; j++) {
+          orbitPath.lineTo(
+              planetPositions[i][j][0] * 30, -planetPositions[i][j][1] * 30);
+        }
+        canvas.drawPath(orbitPath, orbitPaint);
       }
-      canvas.drawPath(orbitPath, orbitPaint);
     }
   }
 
@@ -739,9 +781,11 @@ class _SolarSystemState extends State<SolarSystem> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateLocations());
     // Start the timer to update JD every second
-    _timer = Timer.periodic(Duration(seconds: 120), (timer) {
+    _timer = Timer.periodic(Duration(seconds: 60), (timer) {
       _updateLocations();
     });
+
+
   }
 
   double screenWidth = 0;
@@ -775,9 +819,20 @@ class _SolarSystemState extends State<SolarSystem> {
   double moonLeft = 0;
   double moonTop = 0;
 
+  double earthPx = 0;
+  double earthPy = 0;
+
   _updateLocations() {
 
     getPerms();
+
+    DateTime time = DateTime.now().toUtc();
+
+    double _currentJD = JulianDate.gregorianDateToJulianDate(
+        time.year, time.month, time.day, time.hour, time.minute, time.second);
+
+
+    earthOrientation(currentPos.latitude, _currentJD);
 
     mercuryLeft = sunPosX + (widget.mercuryCoordinates[0] * astroScale);
     mercuryTop = sunPosY + (-widget.mercuryCoordinates[1] * astroScale);
@@ -787,6 +842,14 @@ class _SolarSystemState extends State<SolarSystem> {
 
     earthLeft = sunPosX + (widget.earthCoordinates[0] * astroScale);
     earthTop = sunPosY + (-widget.earthCoordinates[1] * astroScale);
+
+    double angleBetweenSunAndEarth = atan2(earthLeft - sunPosY, earthTop - sunPosX);
+
+    earthPx = 1.0 * cos(degreesToRadians(earthPosAngle)+angleBetweenSunAndEarth);
+    earthPy = 1.0 * sin(degreesToRadians(earthPosAngle)+angleBetweenSunAndEarth);
+
+    print(earthPx);
+    print(earthPy);
 
     marsLeft = sunPosX + (widget.marsCoordinates[0] * astroScale);
     marsTop = sunPosY + (-widget.marsCoordinates[1] * astroScale);
@@ -957,11 +1020,28 @@ class _SolarSystemState extends State<SolarSystem> {
                           shape: BoxShape.circle,
                           color: Colors.blue,
                         ),
+                        child: Stack(
+                          children: [
+                            // Red dot at the edge of the circle
+                            Positioned(
+                              left: 2.61+earthPx, // Adjust the position as needed
+                              top: 2.61+earthPy, // Adjust the position as needed
+                              child: Container(
+                                width: 1, // Adjust the size of the red dot
+                                height: 1, // Adjust the size of the red dot
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
 
-                  // Moon
+// Moon
                   Positioned(
                     left: moonLeft - 1,
                     top: moonTop - 1,
@@ -976,12 +1056,19 @@ class _SolarSystemState extends State<SolarSystem> {
                         handleTap(moonLeft, moonTop);
                       },
                       child: Container(
-                        alignment: Alignment.center,
-                        width: 2,
-                        height: 2,
+                        width: 2.6,
+                        height: 2.6,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.grey,
+                          border: Border.all(
+                            color: Colors.white24, // Set the color of the circular outline
+                            width: .15, // Set the width of the circular outline
+                          ),
+                        ),
+                        child: Image.asset(
+                          moonPhaseAddress,
+                          width: 2.5,
+                          height: 2.5,
                         ),
                       ),
                     ),

@@ -810,6 +810,9 @@ class _SolarSystemState extends State<SolarSystem> {
   double earthPx = 0;
   double earthPy = 0;
 
+  TransformationController _transformationController =
+      TransformationController();
+
   _updateLocations() {
     getPerms();
 
@@ -835,8 +838,6 @@ class _SolarSystemState extends State<SolarSystem> {
     earthPx = 2 * cos(degreesToRadians(angle) + angleBetweenSunAndEarth);
     earthPy = 2 * sin(degreesToRadians(angle) + angleBetweenSunAndEarth);
 
-    print(earthPx);
-    print(earthPy);
 
     marsLeft = sunPosX + (widget.marsCoordinates[0] * astroScale);
     marsTop = sunPosY + (-widget.marsCoordinates[1] * astroScale);
@@ -855,10 +856,11 @@ class _SolarSystemState extends State<SolarSystem> {
 
     moonLeft = earthLeft + (widget.moonCoordinates[0] * astroScale * 50);
     moonTop = earthTop - (widget.moonCoordinates[1] * astroScale * 50);
-  }
 
-  TransformationController _transformationController =
-      TransformationController();
+    handleTap(sunPosX, sunPosY);
+
+    _transformationController.value = Matrix4.diagonal3Values(0.5, 0.5, 1.0);
+  }
 
   @override
   Widget build(BuildContext context) {

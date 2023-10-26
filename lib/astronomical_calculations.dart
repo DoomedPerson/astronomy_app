@@ -574,7 +574,7 @@ double earthOrientation(double long, double jd) {
 
   double angle = 360 * hoursPast;
 
-  double pointSpot = angle - (long - subSolarPointLon);
+  double pointSpot = angle + (long-subSolarPointLon).abs();
 
   return pointSpot;
 }

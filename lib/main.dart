@@ -28,6 +28,16 @@ List<double> selectedPlanetInfo = [
   0,
   0
 ]; // right asc, dec, azimuth, altitude
+
+double pluto_e = 0.2518378778576892;
+double pluto_a = 39.58862938517124;
+
+double pluto_m = degreesToRadians(38.68366347318184); // MEAN ANOMALIE 2016
+double pluto_i = degreesToRadians(17.14771140999114);
+double pluto_longascnode = degreesToRadians(110.2923840543057);
+
+double pluto_argp = degreesToRadians(113.7090015158565);
+
 List<String> planetNames = [
   "Sun",
   "Mercury",
@@ -125,7 +135,8 @@ List<List<List<double>>> calculatePlanetPositions() {
     10756 / 60,
     30687 / 60,
     60190 / 60,
-    1
+    1,
+    90520/60,
   };
   List<List<List<double>>> positions = [];
 
@@ -142,7 +153,7 @@ List<List<List<double>>> calculatePlanetPositions() {
 
   double setJD = currentJD;
 
-  for (int i = 0; i < 9; i++) {
+  for (int i = 0; i < 10; i++) {
     int length = yearLengths.elementAt(i).toInt();
     List<List<double>> planetPositionsForYear = [];
 
@@ -180,6 +191,10 @@ List<List<List<double>>> calculatePlanetPositions() {
         case 7:
           temp = Vsop87aMicro.getNeptune(t);
           break;
+        case 9:
+          temp = getPluto(pluto_a, pluto_e, pluto_i, pluto_argp, pluto_longascnode, pluto_m, 2457588.5, currentJD+ yearLengths.elementAt(i)*j);
+
+          break;
         case 8:
           temp = Vsop87aMicro.getEmb(t);
 
@@ -209,6 +224,7 @@ planetInformation(List<List<double>> coord, double JD) {
   double lightSeconds = 0;
 
   if (selectedPlanet > 0) {
+
     List<double> planetCoords = coord[selectedPlanet - 1];
 
     //List<double>
@@ -298,10 +314,13 @@ class _MyHomePageState extends State<MyHomePage> {
   List<double> uranusTemp = [0, 0, 0];
   List<double> neptuneTemp = [0, 0, 0];
 
+  List<double> plutoTemp = [0, 0, 0];
+
   List<double> moonTemp = [0, 0, 0];
 
   // longitude, latitude, radius, right-ascension, declination
   List<List<double>> coordinates = [
+    [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
@@ -486,6 +505,12 @@ class _MyHomePageState extends State<MyHomePage> {
     coordinates[8] = geocartesianToEclipticCoordinates(
         moonTemp[0], moonTemp[1], moonTemp[2]);
 
+    plutoTemp = getPluto(pluto_a, pluto_e, pluto_i, pluto_argp, pluto_longascnode, pluto_m, 2457588.5, _currentJD);
+
+
+    coordinates[9] = geocartesianToEclipticCoordinates(plutoTemp[0], plutoTemp[1], plutoTemp[2]);
+
+
     fetchData();
 
     planetInformation(coordinates, _currentJD);
@@ -504,6 +529,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     earthPosAngle = earthOrientation(currentPos.longitude, _currentJD);
+
   }
 
   String formatWithLeadingZeros(int number) {
@@ -539,6 +565,7 @@ class _MyHomePageState extends State<MyHomePage> {
               neptuneCoordinates: neptuneTemp,
               moonCoordinates: moonTemp,
               planetPositions: widget.planetPositions,
+              plutoCoordinates: plutoTemp,
             ),
             if (selectedPlanet >= 0)
 
@@ -688,6 +715,7 @@ class SolarSystem extends StatefulWidget {
   final List<double> saturnCoordinates;
   final List<double> uranusCoordinates;
   final List<double> neptuneCoordinates;
+  final List<double> plutoCoordinates;
 
   final List<double> moonCoordinates;
 
@@ -704,6 +732,8 @@ class SolarSystem extends StatefulWidget {
     required this.neptuneCoordinates,
     required this.moonCoordinates,
     required this.planetPositions,
+    required this.plutoCoordinates,
+
   });
 
   @override
@@ -727,7 +757,7 @@ class PlanetOrbitsPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.stroke;
     // Draw orbits for each planet
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 10; i++) {
       if (i == 8) {
         Paint orbitPaint = Paint()
           ..color = Colors.white
@@ -803,6 +833,8 @@ class _SolarSystemState extends State<SolarSystem> {
   double uranusTop = 0;
   double neptuneLeft = 0;
   double neptuneTop = 0;
+  double plutoLeft = 0;
+  double plutoTop = 0;
 
   double moonLeft = 0;
   double moonTop = 0;
@@ -832,12 +864,13 @@ class _SolarSystemState extends State<SolarSystem> {
     earthLeft = sunPosX + (widget.earthCoordinates[0] * astroScale);
     earthTop = sunPosY + (-widget.earthCoordinates[1] * astroScale);
 
+
+
     double angleBetweenSunAndEarth =
         atan2(sunPosY - earthTop, sunPosX - earthLeft);
 
     earthPx = 2 * cos(degreesToRadians(angle) + angleBetweenSunAndEarth);
     earthPy = 2 * sin(degreesToRadians(angle) + angleBetweenSunAndEarth);
-
 
     marsLeft = sunPosX + (widget.marsCoordinates[0] * astroScale);
     marsTop = sunPosY + (-widget.marsCoordinates[1] * astroScale);
@@ -854,8 +887,14 @@ class _SolarSystemState extends State<SolarSystem> {
     neptuneLeft = sunPosX + (widget.neptuneCoordinates[0] * astroScale);
     neptuneTop = sunPosY + (-widget.neptuneCoordinates[1] * astroScale);
 
+
+
     moonLeft = earthLeft + (widget.moonCoordinates[0] * astroScale * 50);
     moonTop = earthTop - (widget.moonCoordinates[1] * astroScale * 50);
+
+    plutoLeft = sunPosX + (widget.plutoCoordinates[0] * astroScale);
+    plutoTop = sunPosY + (-widget.plutoCoordinates[1] * astroScale);
+
 
     handleTap(sunPosX, sunPosY);
 
@@ -1191,6 +1230,32 @@ class _SolarSystemState extends State<SolarSystem> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Color.fromARGB(255, 97, 33, 150),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Pluto
+                  Positioned(
+                    left: plutoLeft - 6.08,
+                    top: plutoTop - 6.08,
+                    child: GestureDetector(
+                      onTap: () {
+                        // Set the selected planet and associated text
+                        setState(() {
+                          selectedPlanet = 10;
+                          planet = "Pluto";
+                        });
+
+                        handleTap(plutoLeft, plutoTop);
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        width: 12.16,
+                        height: 12.16,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color.fromARGB(255, 194, 30, 44),
                         ),
                       ),
                     ),

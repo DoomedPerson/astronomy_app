@@ -271,7 +271,11 @@ List<List<double>> getRaDec(planet, year) {
         Temp1 = Vsop87aMicro.getEmb(jd2et((year.floor() + .5) - 1));
         Temp2 = Vsop87aMicro.getEmb(jd2et((year.floor() + .5)));
         Temp3 = Vsop87aMicro.getEmb(jd2et((year.floor() + .5) + 1));
-        break;
+      case 10:
+        Temp1 = getPluto(39.58862938517124, 0.2518378778576892, degreesToRadians(17.14771140999114), degreesToRadians(113.7090015158565), degreesToRadians(110.2923840543057), degreesToRadians(38.68366347318184), 2457588.5, year-1);
+        Temp2 = getPluto(39.58862938517124, 0.2518378778576892, degreesToRadians(17.14771140999114), degreesToRadians(113.7090015158565), degreesToRadians(110.2923840543057), degreesToRadians(38.68366347318184), 2457588.5, year);
+        Temp3 = getPluto(39.58862938517124, 0.2518378778576892, degreesToRadians(17.14771140999114), degreesToRadians(113.7090015158565), degreesToRadians(110.2923840543057), degreesToRadians(38.68366347318184), 2457588.5, year+1);
+
     }
 
     List<double> ecoord1 = cartesianToEclipticCoordinates(helioToGeo(
@@ -297,6 +301,93 @@ List<List<double>> getRaDec(planet, year) {
     [asc1, asc2, asc3],
     [dec1, dec2, dec3]
   ];
+}
+
+// Function to convert true anomaly to eccentric anomaly
+double TrueAnomalyToEccentricAnomaly(double true_anomaly, double eccentricity) {
+  double E = 2 *
+      atan(sqrt((1 - eccentricity) / (1 + eccentricity)) *
+          tan(true_anomaly / 2));
+  return E;
+}
+
+double MeanAnomalyToTrueAnomaly(double mean_anomaly, double eccentricity) {
+  // Initial approximation for true anomaly
+  double E0 = mean_anomaly;
+
+  // Set a tolerance level for convergence
+  const double tolerance = 1e-8;
+
+  double E = E0;
+  while (true) {
+    double next_E = E -
+        (E - eccentricity * sin(E) - mean_anomaly) /
+            (1 - eccentricity * cos(E));
+    if ((next_E - E).abs() < tolerance) {
+      break;
+    }
+    E = next_E;
+  }
+
+  // Calculate true anomaly from eccentric anomaly
+  double true_anomaly =
+      2 * atan(sqrt((1 + eccentricity) / (1 - eccentricity)) * tan(E / 2));
+
+  return true_anomaly;
+}
+
+// Function to convert Keplerian elements to heliocentric (ECI) coordinates
+List<double> KeplerianToHeliocentric(
+    double semi_major_axis,
+    double eccentricity,
+    double inclination,
+    double argument_of_periapsis,
+    double longitude_of_ascending_node,
+    double mean_anomaly) {
+  double true_anomaly = MeanAnomalyToTrueAnomaly(mean_anomaly, eccentricity);
+  // Convert true anomaly to eccentric anomaly
+  double eccentric_anomaly =
+      TrueAnomalyToEccentricAnomaly(true_anomaly, eccentricity);
+
+  // Calculate the radius vector in the perifocal coordinate system
+  double r = semi_major_axis * (1 - eccentricity * cos(eccentric_anomaly));
+
+  // Calculate the coordinates in the perifocal system
+  double x_p = r * (cos(eccentric_anomaly + argument_of_periapsis));
+  double y_p = r * (sin(eccentric_anomaly + argument_of_periapsis));
+
+  // Convert to heliocentric (ECI) coordinates
+
+  return [
+    x_p * (cos(longitude_of_ascending_node)) -
+        y_p * (cos(inclination) * sin(longitude_of_ascending_node)),
+    x_p * (sin(longitude_of_ascending_node)) +
+        y_p * (cos(inclination) * cos(longitude_of_ascending_node)),
+    y_p * (sin(inclination))
+  ];
+}
+
+// Function to convert Keplerian elements to heliocentric (ECI) coordinates
+List<double> getPluto(double semi_major_axis,
+double eccentricity,
+double inclination,
+double argument_of_periapsis,
+double longitude_of_ascending_node,
+double mean_anomaly,
+double jd,
+    double t) {
+
+  double timeDifference = t-jd;
+
+  double orbitTime = 90520;
+
+  timeDifference %= orbitTime;
+  
+  double change = degreesToRadians(360*(timeDifference/orbitTime));
+  
+  mean_anomaly += change;
+
+  return KeplerianToHeliocentric(semi_major_axis, eccentricity, inclination, argument_of_periapsis, longitude_of_ascending_node, mean_anomaly);
 }
 
 List<double> raDecToAltAz(

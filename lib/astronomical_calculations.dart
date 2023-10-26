@@ -1,12 +1,23 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:astronomy_app/main.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'jo7implementation.dart';
 import 'TESTff.dart';
 
 double JD = 0;
+
+List<double> e = [0.2518378778576892, 0.0789125317658808];
+List<double> a = [39.58862938517124, 2.767254360873952];
+List<double> m = [degreesToRadians(38.68366347318184), degreesToRadians(60.0787728227207)];
+List<double> i = [degreesToRadians(17.14771140999114), degreesToRadians(10.5868796009696)];
+List<double> longnode = [degreesToRadians(110.2923840543057), degreesToRadians(80.25497772273573)];
+List<double> argp = [degreesToRadians(113.7090015158565), degreesToRadians(73.42179714001003)];
+List<double> timeSets = [2457588.5, 2460200.5];
+List<double> orbitTimes = [90520, 1682];
+
 
 class JulianDate {
   static int INT(double d) {
@@ -271,10 +282,10 @@ List<List<double>> getRaDec(planet, year) {
         Temp1 = Vsop87aMicro.getEmb(jd2et((year.floor() + .5) - 1));
         Temp2 = Vsop87aMicro.getEmb(jd2et((year.floor() + .5)));
         Temp3 = Vsop87aMicro.getEmb(jd2et((year.floor() + .5) + 1));
-      case 10:
-        Temp1 = getPluto(39.58862938517124, 0.2518378778576892, degreesToRadians(17.14771140999114), degreesToRadians(113.7090015158565), degreesToRadians(110.2923840543057), degreesToRadians(38.68366347318184), 2457588.5, year-1);
-        Temp2 = getPluto(39.58862938517124, 0.2518378778576892, degreesToRadians(17.14771140999114), degreesToRadians(113.7090015158565), degreesToRadians(110.2923840543057), degreesToRadians(38.68366347318184), 2457588.5, year);
-        Temp3 = getPluto(39.58862938517124, 0.2518378778576892, degreesToRadians(17.14771140999114), degreesToRadians(113.7090015158565), degreesToRadians(110.2923840543057), degreesToRadians(38.68366347318184), 2457588.5, year+1);
+      case >= 10:
+        Temp1 = getPlanetRA(a[planet-10], e[planet-10], i[planet-10], argp[planet-10], longnode[planet-10], argp[planet-10], timeSets[planet-10], year-1, orbitTimes[planet-10]);
+        Temp2 = getPlanetRA(a[planet-10], e[planet-10], i[planet-10], argp[planet-10], longnode[planet-10], argp[planet-10], timeSets[planet-10], year, orbitTimes[planet-10]);
+        Temp3 = getPlanetRA(a[planet-10], e[planet-10], i[planet-10], argp[planet-10], longnode[planet-10], argp[planet-10], timeSets[planet-10], year+1, orbitTimes[planet-10]);
 
     }
 
@@ -368,18 +379,18 @@ List<double> KeplerianToHeliocentric(
 }
 
 // Function to convert Keplerian elements to heliocentric (ECI) coordinates
-List<double> getPluto(double semi_major_axis,
+List<double> getPlanetRA(double semi_major_axis,
 double eccentricity,
 double inclination,
 double argument_of_periapsis,
 double longitude_of_ascending_node,
 double mean_anomaly,
 double jd,
-    double t) {
+    double t,
+    double orbitTime) {
 
   double timeDifference = t-jd;
 
-  double orbitTime = 90520;
 
   timeDifference %= orbitTime;
   

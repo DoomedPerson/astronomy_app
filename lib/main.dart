@@ -38,6 +38,19 @@ double pluto_longascnode = degreesToRadians(110.2923840543057);
 
 double pluto_argp = degreesToRadians(113.7090015158565);
 
+double pluto_t = 2457588.5;
+
+double ceres_e = 0.0789125317658808;
+double ceres_a = 2.767254360873952;
+
+double ceres_m = degreesToRadians(60.0787728227207); // MEAN ANOMALIE 2016
+double ceres_i = degreesToRadians(10.5868796009696);
+double ceres_longascnode = degreesToRadians(80.25497772273573);
+
+double ceres_argp = degreesToRadians(73.42179714001003);
+
+double ceres_t = 2460200.5;
+
 List<String> planetNames = [
   "Sun",
   "Mercury",
@@ -48,7 +61,9 @@ List<String> planetNames = [
   "Saturn",
   "Uranus",
   "Neptune",
-  "Moon"
+  "Moon",
+  "Pluto",
+  "Ceres"
 ];
 
 double earthPosAngle = 0;
@@ -137,6 +152,7 @@ List<List<List<double>>> calculatePlanetPositions() {
     60190 / 60,
     1,
     90520/60,
+    1682/60,
   };
   List<List<List<double>>> positions = [];
 
@@ -153,7 +169,7 @@ List<List<List<double>>> calculatePlanetPositions() {
 
   double setJD = currentJD;
 
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 11; i++) {
     int length = yearLengths.elementAt(i).toInt();
     List<List<double>> planetPositionsForYear = [];
 
@@ -192,7 +208,11 @@ List<List<List<double>>> calculatePlanetPositions() {
           temp = Vsop87aMicro.getNeptune(t);
           break;
         case 9:
-          temp = getPluto(pluto_a, pluto_e, pluto_i, pluto_argp, pluto_longascnode, pluto_m, 2457588.5, currentJD+ yearLengths.elementAt(i)*j);
+          temp = getPlanetRA(pluto_a, pluto_e, pluto_i, pluto_argp, pluto_longascnode, pluto_m, pluto_t, currentJD+ yearLengths.elementAt(i)*j, 90520);
+
+          break;
+        case 10:
+          temp = getPlanetRA(ceres_a, ceres_e, ceres_i, ceres_argp, ceres_longascnode, ceres_m, ceres_t, currentJD+ yearLengths.elementAt(i)*j, 1682);
 
           break;
         case 8:
@@ -315,11 +335,13 @@ class _MyHomePageState extends State<MyHomePage> {
   List<double> neptuneTemp = [0, 0, 0];
 
   List<double> plutoTemp = [0, 0, 0];
+  List<double> ceresTemp = [0, 0, 0];
 
   List<double> moonTemp = [0, 0, 0];
 
   // longitude, latitude, radius, right-ascension, declination
   List<List<double>> coordinates = [
+    [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
@@ -505,10 +527,14 @@ class _MyHomePageState extends State<MyHomePage> {
     coordinates[8] = geocartesianToEclipticCoordinates(
         moonTemp[0], moonTemp[1], moonTemp[2]);
 
-    plutoTemp = getPluto(pluto_a, pluto_e, pluto_i, pluto_argp, pluto_longascnode, pluto_m, 2457588.5, _currentJD);
+    plutoTemp = getPlanetRA(pluto_a, pluto_e, pluto_i, pluto_argp, pluto_longascnode, pluto_m, pluto_t, _currentJD, 90520);
+
+    ceresTemp = getPlanetRA(ceres_a, ceres_e, ceres_i, ceres_argp, ceres_longascnode, ceres_m, ceres_t, _currentJD, 1682);
 
 
     coordinates[9] = geocartesianToEclipticCoordinates(plutoTemp[0], plutoTemp[1], plutoTemp[2]);
+
+    coordinates[10] = geocartesianToEclipticCoordinates(ceresTemp[0], ceresTemp[1], ceresTemp[2]);
 
 
     fetchData();
@@ -566,6 +592,7 @@ class _MyHomePageState extends State<MyHomePage> {
               moonCoordinates: moonTemp,
               planetPositions: widget.planetPositions,
               plutoCoordinates: plutoTemp,
+              ceresCoordinates: ceresTemp,
             ),
             if (selectedPlanet >= 0)
 
@@ -716,6 +743,7 @@ class SolarSystem extends StatefulWidget {
   final List<double> uranusCoordinates;
   final List<double> neptuneCoordinates;
   final List<double> plutoCoordinates;
+  final List<double> ceresCoordinates;
 
   final List<double> moonCoordinates;
 
@@ -733,6 +761,7 @@ class SolarSystem extends StatefulWidget {
     required this.moonCoordinates,
     required this.planetPositions,
     required this.plutoCoordinates,
+    required this.ceresCoordinates,
 
   });
 
@@ -757,7 +786,7 @@ class PlanetOrbitsPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.stroke;
     // Draw orbits for each planet
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 11; i++) {
       if (i == 8) {
         Paint orbitPaint = Paint()
           ..color = Colors.white
@@ -835,6 +864,8 @@ class _SolarSystemState extends State<SolarSystem> {
   double neptuneTop = 0;
   double plutoLeft = 0;
   double plutoTop = 0;
+  double ceresLeft = 0;
+  double ceresTop = 0;
 
   double moonLeft = 0;
   double moonTop = 0;
@@ -894,6 +925,9 @@ class _SolarSystemState extends State<SolarSystem> {
 
     plutoLeft = sunPosX + (widget.plutoCoordinates[0] * astroScale);
     plutoTop = sunPosY + (-widget.plutoCoordinates[1] * astroScale);
+
+    ceresLeft = sunPosX + (widget.ceresCoordinates[0] * astroScale);
+    ceresTop = sunPosY + (-widget.ceresCoordinates[1] * astroScale);
 
 
     handleTap(sunPosX, sunPosY);
@@ -1256,6 +1290,32 @@ class _SolarSystemState extends State<SolarSystem> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Color.fromARGB(255, 194, 30, 44),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Ceres
+                  Positioned(
+                    left: ceresLeft - 6.08,
+                    top: ceresTop - 6.08,
+                    child: GestureDetector(
+                      onTap: () {
+                        // Set the selected planet and associated text
+                        setState(() {
+                          selectedPlanet = 11;
+                          planet = "Ceres";
+                        });
+
+                        handleTap(ceresLeft, ceresTop);
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        width: 12.16,
+                        height: 12.16,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color.fromARGB(255, 45, 154, 85),
                         ),
                       ),
                     ),

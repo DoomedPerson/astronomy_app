@@ -29,27 +29,15 @@ List<double> selectedPlanetInfo = [
   0
 ]; // right asc, dec, azimuth, altitude
 
-double pluto_e = 0.2518378778576892;
-double pluto_a = 39.58862938517124;
+List<double> e = [0.2518378778576892, 0.0789125317658808, 0.967, 0.9999294152687143];
+List<double> a = [39.58862938517124, 2.767254360873952, 17.92781773504386, 78.68293963959538];
+List<double> m = [degreesToRadians(38.68366347318184), degreesToRadians(60.0787728227207), degreesToRadians(274.1404919498392), degreesToRadians(359.9858617465071)];
+List<double> inc = [degreesToRadians(17.14771140999114), degreesToRadians(10.5868796009696), degreesToRadians(162.1878711908339), degreesToRadians(134.3558107377023)];
+List<double> longnode = [degreesToRadians(110.2923840543057), degreesToRadians(80.25497772273573), degreesToRadians(59.11448293673941), degreesToRadians(326.3691470244605)];
+List<double> argp = [degreesToRadians(113.7090015158565), degreesToRadians(73.42179714001003), degreesToRadians(112.257792004868), degreesToRadians(53.50921241435645)];
+List<double> timeSets = [2457588.5, 2460200.5, 2439857.5, 2455901.5];
+List<double> orbitTimes = [90981.71647718345, 1681.403889244621, 27726.15004984154, 254929.0293747837];
 
-double pluto_m = degreesToRadians(38.68366347318184); // MEAN ANOMALIE 2016
-double pluto_i = degreesToRadians(17.14771140999114);
-double pluto_longascnode = degreesToRadians(110.2923840543057);
-
-double pluto_argp = degreesToRadians(113.7090015158565);
-
-double pluto_t = 2457588.5;
-
-double ceres_e = 0.0789125317658808;
-double ceres_a = 2.767254360873952;
-
-double ceres_m = degreesToRadians(60.0787728227207); // MEAN ANOMALIE 2016
-double ceres_i = degreesToRadians(10.5868796009696);
-double ceres_longascnode = degreesToRadians(80.25497772273573);
-
-double ceres_argp = degreesToRadians(73.42179714001003);
-
-double ceres_t = 2460200.5;
 
 List<String> planetNames = [
   "Sun",
@@ -63,7 +51,9 @@ List<String> planetNames = [
   "Neptune",
   "Moon",
   "Pluto",
-  "Ceres"
+  "Ceres",
+  "Halleys Comet",
+  "2011 Lovejoy"
 ];
 
 double earthPosAngle = 0;
@@ -151,8 +141,10 @@ List<List<List<double>>> calculatePlanetPositions() {
     30687 / 60,
     60190 / 60,
     1,
-    90520/60,
-    1682/60,
+    orbitTimes[0]/60,
+    orbitTimes[1]/60,
+    orbitTimes[2]/360,
+    orbitTimes[3]/360,
   };
   List<List<List<double>>> positions = [];
 
@@ -167,9 +159,11 @@ List<List<List<double>>> calculatePlanetPositions() {
   double t = jd2et(currentJD);
   double upLim = 61;
 
+
+
   double setJD = currentJD;
 
-  for (int i = 0; i < 11; i++) {
+  for (int i = 0; i < 13; i++) {
     int length = yearLengths.elementAt(i).toInt();
     List<List<double>> planetPositionsForYear = [];
 
@@ -177,6 +171,12 @@ List<List<List<double>>> calculatePlanetPositions() {
       upLim = 62 * 2;
       currentJD -= 62;
     }
+    
+    if (i >= 11)
+    {
+      upLim = 361;
+    }
+
 
     for (int j = 0; j < upLim; j++) {
       double t = jd2et(currentJD + yearLengths.elementAt(i) * j);
@@ -207,13 +207,8 @@ List<List<List<double>>> calculatePlanetPositions() {
         case 7:
           temp = Vsop87aMicro.getNeptune(t);
           break;
-        case 9:
-          temp = getPlanetRA(pluto_a, pluto_e, pluto_i, pluto_argp, pluto_longascnode, pluto_m, pluto_t, currentJD+ yearLengths.elementAt(i)*j, 90520);
-
-          break;
-        case 10:
-          temp = getPlanetRA(ceres_a, ceres_e, ceres_i, ceres_argp, ceres_longascnode, ceres_m, ceres_t, currentJD+ yearLengths.elementAt(i)*j, 1682);
-
+        case >= 9:
+          temp = plotEllipse(a[i-9], e[i-9], inc[i-9], argp[i-9], longnode[i-9], m[i-9], timeSets[i-9], currentJD+ yearLengths.elementAt(i)*j, orbitTimes[i-9]);
           break;
         case 8:
           temp = Vsop87aMicro.getEmb(t);
@@ -237,6 +232,8 @@ List<List<List<double>>> calculatePlanetPositions() {
 
   return positions;
 }
+
+
 
 planetInformation(List<List<double>> coord, double JD) {
   double sunDistance = 0;
@@ -284,11 +281,14 @@ planetInformation(List<List<double>> coord, double JD) {
     selectedPlanetInfo[7] = 0; // set
   }
 
-  print(selectedPlanetInfo[0].toString() + " AZIMUTH");
-  print(selectedPlanetInfo[1].toString() + " AZIMUTH");
+
   selectedPlanetInfo[2] = sunDistance; // sun dist
   selectedPlanetInfo[3] = earthDistance; // earth dist
   selectedPlanetInfo[4] = lightSeconds; // light seconds
+
+
+
+  
 }
 
 Future<Position> getCurrentPosition() async {
@@ -337,6 +337,10 @@ class _MyHomePageState extends State<MyHomePage> {
   List<double> plutoTemp = [0, 0, 0];
   List<double> ceresTemp = [0, 0, 0];
 
+
+  List<double> halleysTemp = [0, 0, 0];
+  List<double> lovejoy11Temp = [0, 0, 0];
+
   List<double> moonTemp = [0, 0, 0];
 
   // longitude, latitude, radius, right-ascension, declination
@@ -351,7 +355,9 @@ class _MyHomePageState extends State<MyHomePage> {
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0]
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
   ];
 
   bool _hasPermissions = false;
@@ -461,6 +467,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _currentJD = JulianDate.gregorianDateToJulianDate(
           time.year, time.month, time.day, time.hour, time.minute, time.second);
 
+
       if (init) {
         _updatePosition();
       }
@@ -493,12 +500,22 @@ class _MyHomePageState extends State<MyHomePage> {
     mercuryTemp = Vsop87aMicro.getMercury(t);
     venusTemp = Vsop87aMicro.getVenus(t);
     earthTemp = Vsop87aMicro.getEarth(t);
+
+    print("merc " + mercuryTemp.toString());
+    print("venus" + venusTemp.toString());
+    print("earth" + earthTemp.toString());
+
     marsTemp = Vsop87aMicro.getMars(t);
 
     jupiterTemp = Vsop87aMicro.getJupiter(t);
     saturnTemp = Vsop87aMicro.getSaturn(t);
     uranusTemp = Vsop87aMicro.getUranus(t);
     neptuneTemp = Vsop87aMicro.getNeptune(t);
+
+
+    print("mars " + marsTemp.toString());
+    print("jup" + jupiterTemp.toString());
+    print("saturn" + saturnTemp.toString());
 
     moonTemp = Vsop87aMicro.getEmb(t);
 
@@ -527,14 +544,22 @@ class _MyHomePageState extends State<MyHomePage> {
     coordinates[8] = geocartesianToEclipticCoordinates(
         moonTemp[0], moonTemp[1], moonTemp[2]);
 
-    plutoTemp = getPlanetRA(pluto_a, pluto_e, pluto_i, pluto_argp, pluto_longascnode, pluto_m, pluto_t, _currentJD, 90520);
+    plutoTemp = getPlanetRA(a[0], e[0], inc[0], argp[0], longnode[0], m[0], timeSets[0], _currentJD, orbitTimes[0]);
 
-    ceresTemp = getPlanetRA(ceres_a, ceres_e, ceres_i, ceres_argp, ceres_longascnode, ceres_m, ceres_t, _currentJD, 1682);
+    ceresTemp = getPlanetRA(a[1], e[1], inc[1], argp[1], longnode[1], m[1], timeSets[1], _currentJD, orbitTimes[1]);
+
+    halleysTemp = getPlanetRA(a[2], e[2], inc[2], argp[2], longnode[2], m[2], timeSets[2], _currentJD, orbitTimes[2]);
+
+    lovejoy11Temp = getPlanetRA(a[3], e[3], inc[3], argp[3], longnode[3], m[3], timeSets[3], _currentJD, orbitTimes[3]);
 
 
     coordinates[9] = geocartesianToEclipticCoordinates(plutoTemp[0], plutoTemp[1], plutoTemp[2]);
 
     coordinates[10] = geocartesianToEclipticCoordinates(ceresTemp[0], ceresTemp[1], ceresTemp[2]);
+
+    coordinates[11] = geocartesianToEclipticCoordinates(halleysTemp[0], halleysTemp[1], halleysTemp[2]);
+
+    coordinates[12] = geocartesianToEclipticCoordinates(lovejoy11Temp[0], lovejoy11Temp[1], lovejoy11Temp[2]);
 
 
     fetchData();
@@ -593,6 +618,8 @@ class _MyHomePageState extends State<MyHomePage> {
               planetPositions: widget.planetPositions,
               plutoCoordinates: plutoTemp,
               ceresCoordinates: ceresTemp,
+              halleysCoordinates: halleysTemp,
+              lovejoy11Coordinates: lovejoy11Temp,
             ),
             if (selectedPlanet >= 0)
 
@@ -744,6 +771,8 @@ class SolarSystem extends StatefulWidget {
   final List<double> neptuneCoordinates;
   final List<double> plutoCoordinates;
   final List<double> ceresCoordinates;
+  final List<double> halleysCoordinates;
+  final List<double> lovejoy11Coordinates;
 
   final List<double> moonCoordinates;
 
@@ -762,7 +791,8 @@ class SolarSystem extends StatefulWidget {
     required this.planetPositions,
     required this.plutoCoordinates,
     required this.ceresCoordinates,
-
+    required this.halleysCoordinates,
+    required this.lovejoy11Coordinates,
   });
 
   @override
@@ -772,7 +802,7 @@ class SolarSystem extends StatefulWidget {
 class PlanetOrbitsPainter extends CustomPainter {
   final double sunPosX;
   final double sunPosY;
-  final List<List<List<double>>> planetPositions; // Added parameter
+  final List<List<List<double>>> planetPositions;
 
   PlanetOrbitsPainter(this.sunPosX, this.sunPosY, this.planetPositions);
 
@@ -786,7 +816,7 @@ class PlanetOrbitsPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.stroke;
     // Draw orbits for each planet
-    for (int i = 0; i < 11; i++) {
+    for (int i = 0; i < 12; i++) {
       if (i == 8) {
         Paint orbitPaint = Paint()
           ..color = Colors.white
@@ -819,6 +849,8 @@ class PlanetOrbitsPainter extends CustomPainter {
     return false;
   }
 }
+
+
 
 class _SolarSystemState extends State<SolarSystem> {
   double scale = 1.0; // Initial scale value, can be adjusted
@@ -866,6 +898,10 @@ class _SolarSystemState extends State<SolarSystem> {
   double plutoTop = 0;
   double ceresLeft = 0;
   double ceresTop = 0;
+  double halleysLeft = 0;
+  double halleysTop = 0;
+  double lovejoy11sleft = 0;
+  double lovejoy11stop = 0;
 
   double moonLeft = 0;
   double moonTop = 0;
@@ -929,6 +965,12 @@ class _SolarSystemState extends State<SolarSystem> {
     ceresLeft = sunPosX + (widget.ceresCoordinates[0] * astroScale);
     ceresTop = sunPosY + (-widget.ceresCoordinates[1] * astroScale);
 
+    halleysLeft = sunPosX + (widget.halleysCoordinates[0] * astroScale);
+    halleysTop = sunPosY + (-widget.halleysCoordinates[1] * astroScale);
+
+    lovejoy11sleft = sunPosX + (widget.lovejoy11Coordinates[0] * astroScale);
+    lovejoy11stop = sunPosY + (-widget.lovejoy11Coordinates[1] * astroScale);
+
 
     handleTap(sunPosX, sunPosY);
 
@@ -964,13 +1006,15 @@ class _SolarSystemState extends State<SolarSystem> {
       },
       child: Stack(
         children: [
-          InteractiveViewer(
-            boundaryMargin: EdgeInsets.only(
-                left: 1250.0, top: 1750.0, right: 500.0, bottom: 250.0),
-            minScale: 0.1,
+          Container(
+            width: screenWidth,
+            height: screenHeight,
+          child: InteractiveViewer(
+            constrained: false,
+            minScale: 0.05,
             maxScale: 12.5,
             transformationController: _transformationController,
-            constrained: false,
+            boundaryMargin: const EdgeInsets.all(double.infinity),
             child: SizedBox(
               width: screenWidth * 4,
               height: screenHeight * 4,
@@ -1012,6 +1056,7 @@ class _SolarSystemState extends State<SolarSystem> {
                   Positioned(
                     left: mercuryLeft - 1,
                     top: mercuryTop - 1,
+
                     child: GestureDetector(
                       onTap: () {
                         // Set the selected planet and associated text
@@ -1320,12 +1365,63 @@ class _SolarSystemState extends State<SolarSystem> {
                       ),
                     ),
                   ),
+                  // Halleys
+                  Positioned(
+                    left: halleysLeft - 3.08,
+                    top: halleysTop - 3.08,
+                    child: GestureDetector(
+                      onTap: () {
+                        // Set the selected planet and associated text
+                        setState(() {
+                          selectedPlanet = 12;
+                          planet = "Halley's Comet";
+                        });
+
+                        handleTap(halleysLeft, halleysTop);
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        width: 6.16,
+                        height: 6.16,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color.fromARGB(255, 154, 215, 219),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Lovejoy 11
+                  Positioned(
+                    left: lovejoy11sleft - 3.08,
+                    top: lovejoy11stop - 3.08,
+                    child: GestureDetector(
+                      onTap: () {
+                        // Set the selected planet and associated text
+                        setState(() {
+                          selectedPlanet = 13;
+                          planet = "Lovejoy 11";
+                        });
+
+                        handleTap(halleysLeft, halleysTop);
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        width: 6.16,
+                        height: 6.16,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color.fromARGB(255, 154, 86, 194),
+                        ),
+                      ),
+                    ),
+                  ),
                   // Add the custom painter for orbits
                   // Display specified text for the selected planet
                 ],
               ),
             ),
           ),
+          )
         ],
       ),
     ));

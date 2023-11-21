@@ -9,14 +9,14 @@ import 'TESTff.dart';
 
 double JD = 0;
 
-List<double> e = [0.2518378778576892, 0.0789125317658808];
-List<double> a = [39.58862938517124, 2.767254360873952];
-List<double> m = [degreesToRadians(38.68366347318184), degreesToRadians(60.0787728227207)];
-List<double> i = [degreesToRadians(17.14771140999114), degreesToRadians(10.5868796009696)];
-List<double> longnode = [degreesToRadians(110.2923840543057), degreesToRadians(80.25497772273573)];
-List<double> argp = [degreesToRadians(113.7090015158565), degreesToRadians(73.42179714001003)];
-List<double> timeSets = [2457588.5, 2460200.5];
-List<double> orbitTimes = [90520, 1682];
+List<double> e = [0.2518378778576892, 0.0789125317658808, 0.967, 0.9999294152687143];
+List<double> a = [39.58862938517124, 2.767254360873952, 17.92781773504386, 78.68293963959538];
+List<double> m = [degreesToRadians(38.68366347318184), degreesToRadians(60.0787728227207), degreesToRadians(274.1404919498392), degreesToRadians(359.9858617465071)];
+List<double> inc = [degreesToRadians(17.14771140999114), degreesToRadians(10.5868796009696), degreesToRadians(162.1878711908339), degreesToRadians(134.3558107377023)];
+List<double> longnode = [degreesToRadians(110.2923840543057), degreesToRadians(80.25497772273573), degreesToRadians(59.11448293673941), degreesToRadians(326.3691470244605)];
+List<double> argp = [degreesToRadians(113.7090015158565), degreesToRadians(73.42179714001003), degreesToRadians(112.257792004868), degreesToRadians(53.50921241435645)];
+List<double> timeSets = [2457588.5, 2460200.5, 2439857.5, 2455901.5];
+List<double> orbitTimes = [90981.71647718345, 1681.403889244621, 27726.15004984154, 254929.0293747837];
 
 
 class JulianDate {
@@ -283,9 +283,9 @@ List<List<double>> getRaDec(planet, year) {
         Temp2 = Vsop87aMicro.getEmb(jd2et((year.floor() + .5)));
         Temp3 = Vsop87aMicro.getEmb(jd2et((year.floor() + .5) + 1));
       case >= 10:
-        Temp1 = getPlanetRA(a[planet-10], e[planet-10], i[planet-10], argp[planet-10], longnode[planet-10], argp[planet-10], timeSets[planet-10], year-1, orbitTimes[planet-10]);
-        Temp2 = getPlanetRA(a[planet-10], e[planet-10], i[planet-10], argp[planet-10], longnode[planet-10], argp[planet-10], timeSets[planet-10], year, orbitTimes[planet-10]);
-        Temp3 = getPlanetRA(a[planet-10], e[planet-10], i[planet-10], argp[planet-10], longnode[planet-10], argp[planet-10], timeSets[planet-10], year+1, orbitTimes[planet-10]);
+        Temp1 = getPlanetRA(a[planet-10], e[planet-10], inc[planet-10], argp[planet-10], longnode[planet-10], argp[planet-10], timeSets[planet-10], year-1, orbitTimes[planet-10]);
+        Temp2 = getPlanetRA(a[planet-10], e[planet-10], inc[planet-10], argp[planet-10], longnode[planet-10], argp[planet-10], timeSets[planet-10], year, orbitTimes[planet-10]);
+        Temp3 = getPlanetRA(a[planet-10], e[planet-10], inc[planet-10], argp[planet-10], longnode[planet-10], argp[planet-10], timeSets[planet-10], year+1, orbitTimes[planet-10]);
 
     }
 
@@ -312,6 +312,24 @@ List<List<double>> getRaDec(planet, year) {
     [asc1, asc2, asc3],
     [dec1, dec2, dec3]
   ];
+
+
+}
+
+double KeplerEquationSolver(double mean_anomaly, double eccentricity, double tolerance) {
+  double E0 = mean_anomaly;
+  double E = E0;
+
+  while (true) {
+    double deltaE = (E - eccentricity * sin(E) - mean_anomaly) / (1 - eccentricity * cos(E));
+    E -= deltaE;
+
+    if (deltaE.abs() < tolerance) {
+      break;
+    }
+  }
+
+  return E;
 }
 
 // Function to convert true anomaly to eccentric anomaly
@@ -354,17 +372,17 @@ List<double> KeplerianToHeliocentric(
     double inclination,
     double argument_of_periapsis,
     double longitude_of_ascending_node,
-    double mean_anomaly) {
-  double true_anomaly = MeanAnomalyToTrueAnomaly(mean_anomaly, eccentricity);
+    double true_anomaly) {
   // Convert true anomaly to eccentric anomaly
-  double eccentric_anomaly =
-      TrueAnomalyToEccentricAnomaly(true_anomaly, eccentricity);
+  const double tolerance = 1e-8;
+  double eccentric_anomaly = TrueAnomalyToEccentricAnomaly(true_anomaly, eccentricity);
+
 
   // Calculate the radius vector in the perifocal coordinate system
   double r = semi_major_axis * (1 - eccentricity * cos(eccentric_anomaly));
 
   // Calculate the coordinates in the perifocal system
-  double x_p = r * (cos(eccentric_anomaly + argument_of_periapsis));
+  /*double x_p = r * (cos(eccentric_anomaly + argument_of_periapsis));
   double y_p = r * (sin(eccentric_anomaly + argument_of_periapsis));
 
   // Convert to heliocentric (ECI) coordinates
@@ -375,7 +393,37 @@ List<double> KeplerianToHeliocentric(
     x_p * (sin(longitude_of_ascending_node)) +
         y_p * (cos(inclination) * cos(longitude_of_ascending_node)),
     y_p * (sin(inclination))
-  ];
+  ];*/
+
+  double x = r * (cos(longitude_of_ascending_node) * cos(argument_of_periapsis+true_anomaly) - sin(longitude_of_ascending_node) * sin(argument_of_periapsis + true_anomaly) * cos(inclination));
+  double y = r * (sin(longitude_of_ascending_node) * cos(argument_of_periapsis+true_anomaly) + cos(longitude_of_ascending_node) * sin(argument_of_periapsis + true_anomaly) * cos(inclination));
+  double z = r * (sin(true_anomaly) * sin(inclination));
+
+  return [x,y,z];
+
+}
+
+
+List<double> plotEllipse(double semi_major_axis,
+double eccentricity,
+double inclination,
+double argument_of_periapsis,
+double longitude_of_ascending_node,
+double true_anomaly,
+double jd,
+    double t,
+    double orbitTime) {
+
+  double timeDifference = t-jd;
+
+  timeDifference %= orbitTime;
+  
+  double change = degreesToRadians(360*(timeDifference/orbitTime));
+  
+  true_anomaly += change;
+
+
+  return KeplerianToHeliocentric(semi_major_axis, eccentricity, inclination, argument_of_periapsis, longitude_of_ascending_node, true_anomaly);
 }
 
 // Function to convert Keplerian elements to heliocentric (ECI) coordinates
@@ -398,11 +446,34 @@ double jd,
   
   mean_anomaly += change;
 
-  return KeplerianToHeliocentric(semi_major_axis, eccentricity, inclination, argument_of_periapsis, longitude_of_ascending_node, mean_anomaly);
+  double true_anomaly = MeanAnomalyToTrueAnomaly(mean_anomaly, eccentricity);
+
+  return KeplerianToHeliocentric(semi_major_axis, eccentricity, inclination, argument_of_periapsis, longitude_of_ascending_node, true_anomaly);
+}
+
+double getVelocity(int planet, double jd, double r)
+{
+  double semi_major_axis = a[planet-10];
+
+
+
+  r = r * 149597870700;
+  double maj = semi_major_axis * 149597870700;
+
+  double v = sqrt((6.67430e-11)*(1.989e30)*((2/r)-(1/maj)));
+
+
+
+  return v;
+
 }
 
 List<double> raDecToAltAz(
     double ra, double dec, double lat, double lon, double jd_ut) {
+
+  print("RRAHHHHHHHH");
+  print(lat);
+  print(lon);
   // Meeus 13.5 and 13.6, modified so West longitudes are negative and 0 is North
   double gmst = greenwichMeanSiderealTime(jd_ut);
   double localSiderealTime = (gmst + lon) % (2 * pi);
@@ -574,7 +645,7 @@ double earthOrientation(double long, double jd) {
 
   double angle = 360 * hoursPast;
 
-  double pointSpot = angle + (long-subSolarPointLon).abs();
+  double pointSpot = angle + ((long+180)-(subSolarPointLon+180));
 
   return pointSpot;
 }
